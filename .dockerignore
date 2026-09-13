@@ -1,0 +1,27 @@
+# O que NÃO entra na imagem. Cada linha aqui é coisa que ou não serve em
+# produção, ou não deveria sair da sua máquina.
+
+# Segredos. O .env fica no servidor, fora da imagem.
+.env
+.env.*
+!.env.example
+
+# Reconstruídos dentro do Docker (e o node_modules local pode ter binários
+# compilados para outro sistema).
+node_modules
+.next
+out
+
+# Histórico e ferramentas de quem desenvolve.
+.git
+.gitignore
+.vscode
+.idea
+
+# Documentação e rascunhos.
+*.md
+!README.md
+
+npm-debug.log*
+yarn-debug.log*
+.DS_Store

@@ -1,0 +1,666 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   SISTEMA VISUAL — referência: as grandes lojas de departamento brasileiras
+   (magazineluiza.com.br, havan.com.br).
+
+   O desenho anterior era de loja de moda: preto e branco, canto vivo, muito
+   branco e pouca informação por card. Numa loja de departamento isso lê como
+   página improvisada — e "parece site de golpe" foi exatamente o veredito.
+
+   O que muda o veredito não é enfeite, é DENSIDADE DE INFORMAÇÃO ÚTIL. Uma
+   loja grande brasileira mostra, sem que ninguém precise clicar: quanto
+   custa, quanto custava, quantos por cento caiu, em quantas vezes dá para
+   parcelar, quanto sai no Pix, se tem estoque. São seis respostas no mesmo
+   card. Uma vitrine que mostra só nome e preço parece um catálogo montado
+   ontem — mesmo quando é honesta.
+
+   As três regras que sustentam este arquivo:
+
+   1. NADA DE PROMESSA QUE A LOJA NÃO FEZ. Não há "frete grátis acima de",
+      "troca em 30 dias" nem "12x sem juros" escritos aqui: o parcelamento e
+      o Pix aparecem porque vêm dos meios que AQUELA loja de fato aceita (ver
+      lib/pagamento.ts). Selo de segurança comprado é o que sites de golpe
+      usam; o que se mostra aqui é CNPJ, meios de pagamento reais e o endereço
+      da loja.
+   2. O TEMA CONTINUA MANDANDO. Toda cor de marca sai de --destaque, que o
+      lojista escolhe no painel. Este arquivo só acrescenta as cores de
+      SIGNIFICADO (preço, desconto, Pix), que são iguais em qualquer loja.
+   3. LIGHT-ONLY, como a referência: nada aqui depende do tema do sistema.
+   ========================================================================== */
+
+@theme inline {
+  --color-background: var(--fundo);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-source);
+
+  /* Canto levemente arredondado, como nas lojas de referência. Não é
+     enfeite: quadrado de ponta a ponta, um card sem sombra encosta no
+     vizinho e a página vira uma malha cinza. O raio é pequeno de propósito
+     (6px), o suficiente para o card virar objeto sem virar bolha.
+
+     O PAINEL continua quadrado — lá a decisão foi outra e vale: é ferramenta
+     de trabalho, com tabela e formulário, não vitrine. */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 14px;
+  --radius-3xl: 18px;
+}
+
+:root {
+  /* ------------------------------------------------------------------
+     As quatro cores que o lojista escolhe no painel (ver o bloco
+     "Aparência" em /page/loja). Elas chegam como estilo no elemento raiz
+     da vitrine; o que está aqui é o preto-e-branco de fábrica, que é o
+     que a loja mostra enquanto ninguém escolheu nada.
+     ------------------------------------------------------------------ */
+  --fundo: #FFFFFF;
+  --ink: #1A1A1A;
+  --destaque: #000000;
+  --palco: #EFECE8;
+
+  /* ------------------------------------------------------------------
+     Derivadas das quatro de cima: não se escolhem, se calculam.
+     É o que impede uma loja ilegível. O cinza do texto secundário e a
+     cor da borda são sempre uma mistura do texto com o fundo escolhidos,
+     então quem põe fundo escuro recebe borda clara sem pedir — em vez de
+     continuar com um cinza de tema claro em cima do preto.
+     ------------------------------------------------------------------ */
+  --ink-2: color-mix(in srgb, var(--ink) 67%, var(--fundo));
+  --ink-3: color-mix(in srgb, var(--ink) 44%, var(--fundo));
+  --esgotado: color-mix(in srgb, var(--ink) 24%, var(--fundo));
+  --linha: color-mix(in srgb, var(--ink) 14%, var(--fundo));
+  --linha-suave: color-mix(in srgb, var(--ink) 7%, var(--fundo));
+  --placa: color-mix(in srgb, var(--ink) 4%, var(--fundo));
+  --placa-forte: color-mix(in srgb, var(--ink) 9%, var(--fundo));
+
+  /* O texto que vai por cima do destaque (o "confira" dentro do botão).
+     Quem decide entre claro e escuro é a vitrine, que mede a luminância
+     da cor escolhida — CSS não sabe fazer essa conta. O valor daqui é o
+     de fábrica, para o destaque preto. */
+  --sobre-destaque: #FFFFFF;
+  --destaque-hover: color-mix(in srgb, var(--destaque) 84%, var(--sobre-destaque));
+
+  /* Cores de significado, iguais em toda loja: verde é desconto e
+     vermelho é erro. Ficam fora do tema porque não são gosto do lojista
+     — são o que o cliente precisa entender sem ler. */
+  --verde: #04844B;
+  --verde-claro: #E7F6EE;
+  --coral: #F2536D;
+  --vermelho: #D02B20;
+  --erro-fundo: #FDECEA;
+
+  /* O preço, que numa loja de departamento é o elemento de maior peso da
+     página depois da foto. Verde-escuro e não preto: é a cor que o olho
+     brasileiro já lê como "este é o valor que vale", e ela separa o preço do
+     resto do texto sem precisar aumentar mais a fonte. */
+  --preco-cor: #14181F;
+
+  /* O desconto. Fundo cheio, texto branco, canto arredondado — o selo que
+     toda loja grande carimba na quina da foto. */
+  --off-fundo: #E4002B;
+  --off-texto: #FFFFFF;
+
+  /* A estrela da avaliação. Dourada, e não da cor do texto: nota é a única
+     coisa da página que não é da loja nem do produto — é de quem comprou —, e
+     a cor separada é o que a faz ser lida de relance. */
+  --estrela: #F5A623;
+
+  /* Sombra em três alturas. Card parado, card sob o cursor, camada que
+     flutua (gaveta, painel de departamentos). Sem uma escala, cada
+     componente inventava a própria sombra e a página perdia a noção de
+     profundidade. */
+  --sombra-1: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.10);
+  --sombra-2: 0 4px 8px rgba(16, 24, 40, 0.08), 0 12px 24px rgba(16, 24, 40, 0.10);
+  --sombra-3: 0 12px 32px rgba(16, 24, 40, 0.16);
+}
+
+@layer base {
+  html {
+    /* O iOS aumenta a fonte sozinho quando o aparelho vira para paisagem, e
+       o resultado é um layout que só quebra deitado. 100% desliga isso. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--fundo);
+    color: var(--ink);
+    font-family: var(--font-source), ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.875rem;
+
+    /* `clip` e não `hidden`: hidden transformaria o body em contêiner de
+       rolagem e o cabeçalho grudado pararia de grudar. Isto aqui só corta o
+       que escapa para os lados — que no celular é o que faz a página inteira
+       arrastar na horizontal por causa de um nome comprido ou de um trilho. */
+    overflow-x: clip;
+  }
+
+  /* Acessibilidade: foco sempre visível para quem navega pelo teclado. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--destaque);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* As classes abaixo vivem na camada `components` de propósito: assim uma
+   utility do Tailwind no mesmo elemento (`btn w-full`, `card p-8`) ainda
+   vence, que é o que quem escreve a página espera. */
+@layer components {
+
+/* Coluna de conteúdo: 1248px.
+   Eram 1030px, largura de site de moda — e numa tela de 1440px sobrava
+   margem dos dois lados suficiente para a loja parecer um folheto centrado.
+   Loja de departamento ocupa a tela: com esta largura cabem cinco produtos
+   por fileira em vez de quatro, que é a diferença entre "catálogo" e
+   "vitrine". */
+.largura {
+  /* width:100% não é redundante com o max-width. Quando esta classe cai num
+     ITEM de flex — como o <main> das telas de conta e de pedidos, que é
+     `largura flex flex-1 flex-col` —, o `margin-inline: auto` cancela o
+     stretch que o flex daria, e o elemento passa a encolher até o tamanho do
+     conteúdo. O resultado era uma coluna estreita no meio de uma tela larga,
+     com os cards espremidos. Com a largura declarada, o comportamento é o
+     mesmo em qualquer contexto. */
+  width: 100%;
+  margin-inline: auto;
+  max-width: 78rem;
+
+  /* No celular cada pixel de largura é conteúdo: 0.875rem de cada lado ainda
+     descola o texto da borda e devolve meio card de espaço à grade. */
+  padding-inline: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .largura {
+    padding-inline: 1rem;
+  }
+}
+
+/* Título de prateleira ("Ofertas do dia"). Cresceu: era 1.15rem, do tamanho
+   de um subtítulo, e uma seção anunciada em voz baixa não parece seção — a
+   página inteira virava uma lista contínua de produtos. */
+.titulo {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+@media (min-width: 640px) {
+  .titulo {
+    font-size: 1.6rem;
+  }
+}
+
+/* O fio sob o título saiu daqui e virou classe própria (.titulo-fio). Ele
+   fazia sentido na prateleira e atrapalhava em todo outro lugar onde o
+   título aparece — no meio de um formulário, por exemplo. */
+.titulo-fio::after {
+  content: "";
+  display: block;
+  width: 3rem;
+  height: 3px;
+  margin-top: 0.6rem;
+  border-radius: 999px;
+  background: var(--destaque);
+}
+
+/* Rótulo miúdo em caixa alta ("CONFIRA TAMBÉM:"). */
+.rotulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* O botão de ação. Cresceu de tamanho e ganhou caixa alta na primeira
+   letra: "comprar" numa loja de departamento é o elemento em que a página
+   inteira desemboca, e ele estava do tamanho de um link. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--destaque);
+  color: var(--sobre-destaque);
+  padding: 0.8rem 1.7rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
+    box-shadow 150ms ease, transform 120ms ease;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--destaque-hover);
+}
+
+.btn:disabled {
+  background: var(--placa);
+  color: var(--ink-3);
+  cursor: not-allowed;
+}
+
+.btn-claro {
+  background: var(--fundo);
+  color: var(--destaque);
+  border: 1.5px solid var(--destaque);
+}
+
+.btn-claro:hover:not(:disabled) {
+  background: var(--destaque);
+  color: var(--sobre-destaque);
+}
+
+.btn-claro:disabled {
+  background: var(--fundo);
+  border-color: var(--linha);
+}
+
+/* Card: fundo branco, canto suave e uma sombra baixa mesmo parado.
+   A sombra parada é o que separa o produto do fundo da página — sem ela, uma
+   grade de cards com borda cinza clara vira papel quadriculado. */
+.card {
+  background: var(--fundo);
+  border: 1px solid var(--linha-suave);
+  border-radius: var(--radius-md);
+  box-shadow: var(--sombra-1);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.card-hover {
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+/* Sob o cursor o card sobe e a sombra abre. Quem pediu menos movimento não
+   recebe nenhum: a regra de prefers-reduced-motion lá em cima zera a
+   transição. */
+.card-hover:hover {
+  border-color: color-mix(in srgb, var(--destaque) 35%, var(--fundo));
+  box-shadow: var(--sombra-2);
+  transform: translateY(-3px);
+}
+
+/* O selo de desconto, carimbado na quina da foto. Era uma faixa verde
+   atravessando a base da imagem, que tapava o produto justamente nas fotos
+   em que ele ocupa o quadro inteiro. Na quina não tapa nada e é onde toda
+   loja grande o põe — o olho já procura ali. */
+.selo-off {
+  display: inline-flex;
+  align-items: center;
+  background: var(--off-fundo);
+  color: var(--off-texto);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  padding: 0.2rem 0.45rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* O PREÇO.
+   É o número que decide a compra, e por isso é o maior texto do card depois
+   do nada — 1.12rem era tamanho de texto corrido. */
+.preco {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--preco-cor);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+  .preco {
+    font-size: 1.45rem;
+  }
+}
+
+/* O mesmo número, no tamanho da página de produto, onde ele é o assunto. */
+.preco-grande {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  color: var(--preco-cor);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 640px) {
+  .preco-grande {
+    font-size: 2.4rem;
+  }
+}
+
+.preco-antigo {
+  font-size: 0.82rem;
+  color: var(--ink-3);
+  text-decoration: line-through;
+  font-variant-numeric: tabular-nums;
+}
+
+/* "em até 12x no cartão" — a linha logo abaixo do preço.
+   NÃO diz "sem juros" e não divide o valor por doze: quem define juros e
+   número de parcelas é o provedor de pagamento na conta da loja, e escrever
+   aqui um valor de parcela que a tela de pagamento vai desmentir é pior do
+   que não escrever nada. Ver lib/pagamento.ts. */
+.parcelas {
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* O preço no Pix. Verde, com o selo — é o segundo número que o comprador
+   brasileiro procura, e ele existe aqui só quando a loja aceita Pix. */
+.pix {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--verde-claro);
+  color: var(--verde);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Números em coluna (quantidade, código do pedido) com largura fixa. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.campo {
+  width: 100%;
+  border: 1px solid var(--linha);
+  border-radius: var(--radius-md);
+  background: var(--fundo);
+  color: var(--ink);
+  padding: 0.65rem 0.9rem;
+
+  /* 16px é o número mágico do Safari do iPhone: abaixo disso ele dá zoom na
+     página assim que o campo recebe foco, e a pessoa fica com a loja
+     ampliada e torta no meio da busca. Da largura `sm` para cima volta ao
+     tamanho de texto do resto da interface. */
+  font-size: 1rem;
+  transition: border-color 150ms ease;
+}
+
+@media (min-width: 640px) {
+  .campo {
+    font-size: 0.875rem;
+  }
+}
+
+.campo::placeholder {
+  color: var(--ink-3);
+}
+
+.campo:focus {
+  outline: none;
+  border-color: var(--destaque);
+}
+
+.rotulo-campo {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 0.35rem;
+}
+
+/* Filtro em pílula, usado em categorias, variações e ordenação. */
+.chip {
+  border: 1px solid var(--linha);
+  border-radius: var(--radius-sm);
+  background: var(--fundo);
+  color: var(--ink-2);
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background-color 150ms ease;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--destaque);
+  color: var(--destaque);
+}
+
+.chip-ativo {
+  background: var(--destaque);
+  border-color: var(--destaque);
+  color: var(--sobre-destaque);
+}
+
+/* Onde se navega com o dedo, um chip de 28px é o que faz errar o toque —
+   tamanho, variante, página. A altura mínima só vale para ponteiro grosso,
+   então no mouse o desenho continua o mesmo. */
+@media (pointer: coarse) {
+  .chip {
+    min-height: 2.25rem;
+  }
+}
+
+.link {
+  color: var(--ink-2);
+  transition: color 150ms ease;
+}
+
+.link:hover {
+  color: var(--destaque);
+}
+
+/* Trilhos que correm no dedo não devem mostrar barra de rolagem. */
+.trilho {
+  overflow-x: auto;
+  /* Sem isto, ao chegar ao fim do trilho o dedo continua e leva a PÁGINA
+     para o lado — ou dispara o "voltar" do navegador. */
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.trilho::-webkit-scrollbar {
+  display: none;
+}
+
+/* O último card de uma prateleira é cortado pela borda da coluna, e cortado
+   sem aviso parece defeito de layout. O esmaecimento à direita diz "tem mais
+   para o lado" sem precisar de texto nem de mais uma seta. */
+.trilho-borda {
+  position: relative;
+}
+
+.trilho-borda::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1.75rem;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--fundo));
+}
+
+@media (min-width: 640px) {
+  .trilho-borda::after {
+    width: 3.5rem;
+  }
+}
+
+/* "Está digitando…" — as três bolinhas.
+   Não é enfeite: é o sinal que transforma um formulário em conversa. Quem
+   escreveu uma dúvida e vê a própria mensagem parada na tela não sabe se tem
+   alguém do outro lado, e é nesse silêncio que fecha a aba. As bolinhas só
+   aparecem quando o outro lado DE FATO digitou nos últimos segundos (ver
+   services/atendimento/digitando.go) — animação que roda sozinha, sem sinal
+   nenhum atrás, seria uma mentira animada. */
+.digitando {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.digitando span {
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.4;
+  animation: pulinho 1.2s infinite ease-in-out;
+}
+
+.digitando span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.digitando span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes pulinho {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  30% {
+    transform: translateY(-0.22rem);
+    opacity: 1;
+  }
+}
+
+/* Quem pediu menos movimento recebe as bolinhas paradas e acesas, e não
+   paradas e apagadas — a regra global zera a duração da animação, e sem isto
+   elas ficariam congeladas no quadro inicial, quase invisíveis. */
+@media (prefers-reduced-motion: reduce) {
+  .digitando span {
+    opacity: 0.8;
+  }
+}
+
+/* A gaveta do celular entrando pela esquerda. Sem o deslize ela simplesmente
+   pisca na tela, e um painel que aparece do nada faz a pessoa perder um
+   instante procurando de onde ele veio. Quem pediu menos movimento no
+   sistema não vê nada disso: a regra de `prefers-reduced-motion` lá em cima
+   já zera a duração. */
+@keyframes gaveta-entrando-esq {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.gaveta-esq {
+  animation: gaveta-entrando-esq 0.22s ease-out;
+}
+
+}
+/* fim de @layer components */
+
+/* ==========================================================================
+   Impressão
+
+   Serve à página do pedido: é dela que sai o comprovante que o cliente
+   guarda, imprime ou salva em PDF pelo próprio navegador. Sem isto, imprimir
+   trazia o cabeçalho da loja, o rodapé inteiro, o botão do chat e três
+   páginas de coisa que não é o pedido.
+
+   Ninguém precisa gerar arquivo nenhum no servidor: o "salvar como PDF" já
+   está no diálogo de impressão de todo navegador, e o que ele imprime é o que
+   está descrito aqui.
+   ========================================================================== */
+
+/* O comprovante do pedido existe só no papel: na tela, a mesma informação já
+   está desenhada de outro jeito, para outra leitura. */
+.so-impressao {
+  display: none;
+}
+
+@media print {
+
+  /* O que é navegação não é comprovante. */
+  header,
+  footer,
+  .nao-imprime {
+    display: none !important;
+  }
+
+  /* Na página do pedido, o papel é o comprovante e mais nada: a tela inteira
+     sai, e o documento entra no lugar dela. */
+  .pagina-pedido > *:not(.so-impressao) {
+    display: none !important;
+  }
+
+  .so-impressao {
+    display: block !important;
+  }
+
+  :root {
+    --fundo: #FFFFFF;
+    --ink: #000000;
+  }
+
+  body {
+    background: #FFFFFF;
+  }
+
+  /* Tinta é cara e fundo cinza sai borrado: as caixas viram contorno. */
+  .largura {
+    max-width: none;
+    padding-inline: 0;
+  }
+
+  /* Uma linha da tabela partida ao meio entre duas folhas é o que faz o
+     comprovante parecer rascunho. */
+  tr,
+  li,
+  address {
+    break-inside: avoid;
+  }
+
+  /* O cabeçalho da tabela de itens se repete em cada folha: sem isso, a
+     segunda página traz uma coluna de números sem dizer do que são. */
+  thead {
+    display: table-header-group;
+  }
+
+  /* Fundo cinza sai borrado e come tinta. As cores do TEXTO ficam como o
+     comprovante as definiu — todas elas são cinzas escuros escolhidos para o
+     papel, e é a hierarquia delas que separa rótulo de valor. */
+  .so-impressao * {
+    background: transparent !important;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+
+  a {
+    text-decoration: none;
+  }
+}
