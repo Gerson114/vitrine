@@ -87,7 +87,15 @@ export async function POST(request: Request) {
             // não vai, e não vai de propósito: quem o calcula é o backend, a
             // partir do CEP e da tabela da loja. Aceitá-lo daqui seria deixar
             // o comprador escolher quanto paga de entrega.
-            body: JSON.stringify({ itens, entrega, telefone: texto(entrada.telefone, 24) }),
+            // A forma só pode ser uma das que este sistema conhece. Quem
+            // confere se a LOJA a oferece é o backend — mandar "whatsapp"
+            // para uma loja que cobra por gateway é recusado lá, não aqui.
+            body: JSON.stringify({
+                itens,
+                entrega,
+                telefone: texto(entrada.telefone, 24),
+                forma: entrada.forma === "whatsapp" ? "whatsapp" : "",
+            }),
             cache: "no-store",
         })
 

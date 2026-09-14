@@ -128,8 +128,13 @@ export default function CartDrawer() {
         }
     }
 
-    async function enviarPedido(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault()
+    // Loja que não conectou provedor nenhum e só combina na conversa: aí o
+    // botão de combinar é o principal, e não a alternativa.
+    const soCombina =
+        Boolean(loja.combina_no_whatsapp) && (loja.metodos_pagamento ?? []).length <= 1
+
+    async function enviarPedido(e?: React.FormEvent<HTMLFormElement>, forma?: "whatsapp") {
+        e?.preventDefault()
 
         setEnviando(true)
         setErro("")
@@ -137,7 +142,7 @@ export default function CartDrawer() {
         const resultado = await finalizarPedido({
             ...entrega,
             tipo: querEntrega ? "entrega" : "retirada",
-        })
+        }, forma)
 
         setEnviando(false)
 
@@ -574,13 +579,33 @@ export default function CartDrawer() {
                         <div className="mt-4 space-y-2">
                             {conta ? (
                                 <>
-                                    <button type="submit" disabled={enviando} className="btn w-full py-3.5 text-[0.95rem]">
-                                        {enviando ? "enviando…" : "ir para o pagamento"}
-                                    </button>
+                                    {/* Duas formas de fechar, e a ordem importa: quem
+                                        paga agora resolve tudo sozinho, e por isso vem
+                                        primeiro. Combinar na conversa é o caminho de
+                                        quem prefere falar com a loja — e é o único que
+                                        existe quando ela não conectou provedor. */}
+                                    {loja.aceita_pagamento && !soCombina ? (
+                                        <button type="submit" disabled={enviando} className="btn w-full py-3.5 text-[0.95rem]">
+                                            {enviando ? "enviando…" : "ir para o pagamento"}
+                                        </button>
+                                    ) : null}
 
-                                    <p className="flex items-center justify-center gap-1.5 text-[0.72rem] text-[var(--ink-3)]">
+                                    {loja.combina_no_whatsapp ? (
+                                        <button
+                                            type="button"
+                                            disabled={enviando}
+                                            onClick={() => void enviarPedido(undefined, "whatsapp")}
+                                            className={`w-full py-3.5 text-[0.95rem] ${soCombina ? "btn" : "btn btn-claro"}`}
+                                        >
+                                            {enviando ? "enviando…" : "combinar o pagamento no WhatsApp"}
+                                        </button>
+                                    ) : null}
+
+                                    <p className="flex items-center justify-center gap-1.5 text-center text-[0.72rem] text-[var(--ink-3)]">
                                         <FiLock className="w-3 shrink-0" aria-hidden />
-                                        O pagamento acontece no ambiente do provedor
+                                        {soCombina
+                                            ? "Seu pedido fica reservado e você acerta o pagamento direto com a loja."
+                                            : "O pagamento acontece no ambiente do provedor"}
                                     </p>
                                 </>
                             ) : null}

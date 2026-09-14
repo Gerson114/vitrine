@@ -825,6 +825,7 @@ export default function PedidoPage() {
                             codigo={pedido.codigo}
                             pedido={pedido}
                             conversa={conversa}
+                            whatsapp={loja.whatsapp}
                             aoAtualizar={async () => { await buscarPedido() }}
                         />
 

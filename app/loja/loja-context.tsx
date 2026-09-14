@@ -102,6 +102,18 @@ export interface LojaAtual {
      */
     metodos_pagamento?: string[]
 
+    /**
+     * Esta loja aceita combinar o pagamento na conversa.
+     *
+     * Campo próprio, e não deduzido do texto de metodos_pagamento: o checkout
+     * DECIDE com base nisso, e decidir comparando frase quebraria no dia em
+     * que alguém reescrevesse a frase.
+     */
+    combina_no_whatsapp?: boolean
+
+    /** O número para onde o comprador vai ao escolher combinar. */
+    whatsapp_pagamento?: string
+
     /* ---------------------------------------------------------------
        Como falar com esta loja, e onde ela fica
 

@@ -80,7 +80,7 @@ interface CarrinhoContextValor {
     aberto: boolean
     abrir: () => void
     fechar: () => void
-    finalizarPedido: (entrega: Entrega) => Promise<ResultadoPedido>
+    finalizarPedido: (entrega: Entrega, forma?: "whatsapp") => Promise<ResultadoPedido>
 
     /** Quanto custa entregar num CEP, perguntado ao servidor. */
     cotarFrete: (cep: string) => Promise<Cotacao>
@@ -171,7 +171,7 @@ export function CartProvider({
     const limpar = useCallback(() => setItens([]), [])
 
     const finalizarPedido = useCallback(
-        async (entrega: Entrega): Promise<ResultadoPedido> => {
+        async (entrega: Entrega, forma?: "whatsapp"): Promise<ResultadoPedido> => {
             try {
                 const response = await fetch("/api/pedidos", {
                     method: "POST",
@@ -198,6 +198,14 @@ export function CartProvider({
                         // O endereço vai; o valor do frete não. Quem calcula
                         // é o servidor, sobre o CEP e a tabela da loja.
                         entrega,
+
+                        // Como a pessoa escolheu pagar. Vazio é o provedor da
+                        // loja; "whatsapp" é combinar na conversa.
+                        //
+                        // A escolha é conferida no servidor contra o que a
+                        // loja oferece: mandar "whatsapp" para uma loja que
+                        // não combina não fecha pedido — recusa.
+                        forma: forma ?? "",
                     }),
                 })
 

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { FiAlertCircle, FiCheckCircle, FiClock, FiMessageCircle, FiTruck, FiX } from "react-icons/fi"
 import type { CausaDevolucao, DevolucaoDoPedido, PedidoStatus } from "@/app/type/type"
+import { linkWhatsapp } from "@/lib/contato"
 
 /**
  * "Quero meu dinheiro de volta" — pela vitrine, e só por dois motivos.
@@ -54,6 +55,7 @@ export default function PedirDevolucao({
     codigo,
     pedido,
     conversa,
+    whatsapp,
     aoAtualizar,
 }: {
     loja: string
@@ -62,6 +64,9 @@ export default function PedirDevolucao({
 
     /** O link que abre a conversa com a loja. Vazio quando ela não tem número. */
     conversa?: string
+
+    /** O número da loja, cru. É dele que sai a mensagem já escrita do aviso. */
+    whatsapp?: string
 
     aoAtualizar: () => void | Promise<void>
 }) {
@@ -123,6 +128,41 @@ export default function PedirDevolucao({
         (soma, { item }) => soma + item.preco_unitario * (quantidades[item.id] ?? 0),
         0,
     )
+
+    /**
+     * O aviso que o cliente manda para a loja, já escrito.
+     *
+     * O servidor também avisa a loja pelo WhatsApp dela assim que o pedido é
+     * registrado, e mesmo assim este botão existe: são coisas diferentes. O
+     * aviso do servidor é um recado da loja para ela mesma, e morre ali. Este
+     * abre uma CONVERSA, com o cliente do outro lado — é por onde vai a foto
+     * do dano, que é o que resolve uma avaria mais rápido do que qualquer
+     * descrição.
+     *
+     * Vazio quando a loja não declarou telefone: botão que não leva a lugar
+     * nenhum é pior do que botão nenhum.
+     */
+    function avisoPronto(devolucao: DevolucaoDoPedido): string {
+
+        if (!whatsapp) return ""
+
+        const pecas = devolucao.itens
+            .map((item) => {
+                const comprado = pedido.itens.find((umItem) => umItem.id === item.item_pedido_id)
+
+                return `${item.quantidade}x ${comprado?.produto_nome ?? "peça"}`
+            })
+            .join(", ")
+
+        const causa = devolucao.causa === "atraso" ? "o pedido não chegou" : "chegou danificado"
+
+        const texto =
+            `Olá! Pedi a devolução do pedido ${codigo} pelo site — ${causa}.` +
+            (pecas ? ` ${pecas}.` : "") +
+            (devolucao.motivo ? ` ${devolucao.motivo}` : "")
+
+        return linkWhatsapp(whatsapp, texto)
+    }
 
     function fechar() {
         setAbrindo(null)
@@ -203,7 +243,7 @@ export default function PedirDevolucao({
                     <ul className="mb-5 space-y-3">
                         {devolucoes.map((devolucao) => (
                             <li key={devolucao.id}>
-                                <CartaoDevolucao devolucao={devolucao} />
+                                <CartaoDevolucao devolucao={devolucao} aviso={avisoPronto(devolucao)} />
                             </li>
                         ))}
                     </ul>
@@ -483,7 +523,15 @@ function Acoes({
 }
 
 /** Um pedido de devolução já feito, com a resposta da loja quando houver. */
-function CartaoDevolucao({ devolucao }: { devolucao: DevolucaoDoPedido }) {
+function CartaoDevolucao({
+    devolucao,
+    aviso,
+}: {
+    devolucao: DevolucaoDoPedido
+
+    /** Link do WhatsApp com o recado já escrito. Vazio some com o botão. */
+    aviso: string
+}) {
 
     const pecas = devolucao.itens.reduce((soma, item) => soma + item.quantidade, 0)
 
@@ -540,6 +588,28 @@ function CartaoDevolucao({ devolucao }: { devolucao: DevolucaoDoPedido }) {
                         <p className="mt-2 border-l-2 border-[var(--linha)] pl-3 text-[0.8rem] leading-relaxed text-[var(--ink-2)]">
                             {devolucao.resposta}
                         </p>
+                    ) : null}
+
+                    {/* Falar com a loja enquanto ela não respondeu.
+                        
+                        A loja já foi avisada por dentro do sistema no instante
+                        em que este pedido foi feito — este botão não é o aviso,
+                        é a conversa: é por aqui que vai a foto do dano, e foto
+                        resolve avaria mais rápido do que qualquer descrição.
+                        
+                        Some depois da resposta: decidida a devolução, o que
+                        sobra é esperar o dinheiro, e um botão de "avisar" aí
+                        faria a pessoa avisar de novo o que já foi resolvido. */}
+                    {aviso && devolucao.situacao === "pedida" ? (
+                        <a
+                            href={aviso}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-claro mt-3 px-4 py-2 text-[0.78rem]"
+                        >
+                            <FiMessageCircle className="w-4" aria-hidden />
+                            falar com a loja no WhatsApp
+                        </a>
                     ) : null}
                 </div>
             </div>

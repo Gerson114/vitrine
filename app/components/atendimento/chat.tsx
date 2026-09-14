@@ -27,7 +27,32 @@ import { caminhoDaLoja } from "@/lib/caminhos"
  * "veio algo depois da mensagem X?", então a resposta normal é vazia.
  */
 
-const INTERVALO = 5000
+/* De quanto em quanto tempo a tela pergunta se veio algo novo.
+ *
+ * Eram cinco segundos, fixos, e era tempo demais para uma conversa: quem
+ * atende do outro lado responde e a resposta fica até cinco segundos parada
+ * no servidor, sem ninguém buscá-la. Para quem pergunta e olha para a tela
+ * esperando, cinco segundos de nada é a diferença entre "a loja respondeu" e
+ * "a loja não respondeu".
+ *
+ * Agora o relógio acompanha a conversa. Enquanto ela está viva — alguém falou
+ * ou está digitando há menos de um minuto e meio — pergunta a cada dois
+ * segundos. Passado esse tempo sem nada, afrouxa: o chat aberto e esquecido
+ * num canto da tela não deve custar uma requisição a cada dois segundos até a
+ * pessoa fechar a aba.
+ *
+ * O que NÃO se fez aqui, e por quê: abrir uma conexão viva por visitante (ou
+ * segurar a requisição no servidor esperando novidade) entregaria a resposta
+ * no mesmo instante, mas cobra uma conexão parada por pessoa com o chat
+ * aberto — e a vitrine é a parte do sistema que qualquer um abre, inclusive
+ * quem nunca vai escrever nada. Dois segundos resolvem o que doía sem mudar
+ * essa conta.
+ */
+const INTERVALO_VIVO = 2000
+const INTERVALO_PARADO = 6000
+
+/** Quanto tempo sem nada acontecer até a conversa ser considerada parada. */
+const SILENCIO_ATE_AFROUXAR = 90_000
 
 interface Mensagem {
     id: number
@@ -53,8 +78,10 @@ export default function ChatDaLoja() {
     const [erro, setErro] = useState("")
 
     // A loja está escrevendo agora? Vem na mesma resposta da atualização
-    // automática — o backend guarda o aviso em memória por três segundos (ver
-    // services/atendimento/digitando.go).
+    // automática — o backend guarda o aviso por seis segundos (ver
+    // services/atendimento/digitando.go), que é mais do que o intervalo entre
+    // duas perguntas: é isso que faz a bolinha ser vista em vez de cair no
+    // vão entre uma leitura e outra.
     const [lojaDigitando, setLojaDigitando] = useState(false)
 
     // Quando avisamos pela última vez que ESTA pessoa está digitando. O aviso
@@ -70,6 +97,14 @@ export default function ChatDaLoja() {
     // O id da última mensagem que já está na tela. É o que transforma a
     // atualização automática numa pergunta barata.
     const ultimoID = useRef(0)
+
+    // Quando a conversa deu sinal de vida pela última vez: mensagem que
+    // chegou, mensagem que saiu, ou a loja digitando. É o que decide o ritmo
+    // das perguntas.
+    // Zero até o chat abrir: o relógio só começa a contar quando há uma
+    // conversa na tela, e ler a hora durante a renderização é o tipo de coisa
+    // que faz duas renderizações do mesmo estado darem resultados diferentes.
+    const ultimaAtividade = useRef(0)
 
     const juntar = useCallback((novas: Mensagem[]) => {
 
@@ -117,8 +152,14 @@ export default function ChatDaLoja() {
 
         if (!incremental) setMensagens([])
 
+        const digitando = Boolean((dados as { digitando?: boolean } | null)?.digitando)
+
+        // Chegou mensagem ou a loja está escrevendo: a conversa está viva, e
+        // as próximas perguntas vêm de dois em dois segundos.
+        if (lista.length > 0 || digitando) ultimaAtividade.current = Date.now()
+
         juntar(lista)
-        setLojaDigitando(Boolean((dados as { digitando?: boolean } | null)?.digitando))
+        setLojaDigitando(digitando)
         setErro("")
 
     }, [loja.slug, juntar])
@@ -136,17 +177,33 @@ export default function ChatDaLoja() {
         // onde escrever isso sem efeito nenhum.
         ultimoID.current = 0
 
-        buscar(false).finally(() => {
-            if (vivo) setCarregando(false)
-        })
+        let relogio: ReturnType<typeof setTimeout> | null = null
 
-        const relogio = setInterval(() => {
-            void buscar(true)
-        }, INTERVALO)
+        // Encadeado, e não setInterval: o ritmo muda conforme a conversa, e um
+        // intervalo fixo teria de ser derrubado e remontado a cada mudança —
+        // com a chance de duas perguntas saírem juntas na troca.
+        function agendar() {
+
+            if (!vivo) return
+
+            const parada = Date.now() - ultimaAtividade.current > SILENCIO_ATE_AFROUXAR
+
+            relogio = setTimeout(async () => {
+                await buscar(true)
+                agendar()
+            }, parada ? INTERVALO_PARADO : INTERVALO_VIVO)
+        }
+
+        buscar(false).finally(() => {
+            if (!vivo) return
+
+            setCarregando(false)
+            agendar()
+        })
 
         return () => {
             vivo = false
-            clearInterval(relogio)
+            if (relogio) clearTimeout(relogio)
         }
     }, [aberto, cliente, buscar])
 
@@ -186,6 +243,11 @@ export default function ChatDaLoja() {
 
         setEnviando(true)
         setErro("")
+
+        // Quem acabou de perguntar é quem mais espera resposta: o relógio
+        // volta ao ritmo rápido mesmo que a conversa estivesse parada há
+        // horas.
+        ultimaAtividade.current = Date.now()
 
         try {
             const resposta = await fetch("/api/atendimento", {
