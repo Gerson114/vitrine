@@ -10,7 +10,7 @@ import Prateleira from "@/app/components/prateleira"
 import AvaliacoesDoProduto from "@/app/components/avaliacao/avaliacoes-produto"
 import { listarProdutosServidor } from "@/lib/catalogo"
 import { buscarLojaServidor } from "@/lib/loja"
-import { texto } from "@/app/loja/loja-context"
+import { texto } from "@/app/loja/textos"
 import { caminhoDaLoja } from "@/lib/caminhos"
 import { agruparPorNome, ordenarPorVariacao } from "@/lib/variantes"
 

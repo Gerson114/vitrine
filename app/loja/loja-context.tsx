@@ -2,6 +2,8 @@
 
 import { createContext, useContext } from "react"
 
+import { texto } from "./textos"
+
 /**
  * A loja que está sendo servida nesta página. Vem do endereço na URL
  * (/maria-modas/...), resolvido no servidor pelo layout de [loja] — se o
@@ -189,37 +191,16 @@ export function useLoja(): LojaAtual {
  * `dados` troca as etiquetas do texto: `t("produto.ultimas", "Últimas {n} em
  * estoque", { n: "3 unidades" })`. A etiqueta que não vier em `dados` fica
  * como está, visível — errar aparecendo é melhor do que errar em silêncio.
+ *
+ * A regra em si mora em ./textos, fora deste arquivo, e não por organização:
+ * `"use client"` marca o ARQUIVO, não a função. Enquanto ela estava aqui, todo
+ * export deste módulo era um ponto de entrada do cliente, e a página do produto
+ * — montada no servidor — quebrava ao chamá-la. Este hook é só a ponte para
+ * quem está do lado do cliente e tem contexto de React à mão.
  */
 export function useTexto(): (chave: string, padrao: string, dados?: Record<string, string>) => string {
 
     const loja = useContext(LojaContext)
 
     return (chave, padrao, dados) => texto(loja?.textos, chave, padrao, dados)
-}
-
-/**
- * O mesmo que useTexto, para quem não pode usar hook: as páginas que o Next
- * monta no SERVIDOR (a do produto, por exemplo) não têm contexto de React.
- *
- * Elas já carregam a loja para saber o que desenhar, então recebem o mapa de
- * textos junto e chamam esta função. Uma implementação só para os dois
- * caminhos — o hook delega para cá — porque duas cópias da mesma regra é como
- * uma delas passa a tratar a etiqueta de um jeito diferente da outra.
- */
-export function texto(
-    textos: Record<string, string> | undefined,
-    chave: string,
-    padrao: string,
-    dados?: Record<string, string>,
-): string {
-
-    const escrito = textos?.[chave]
-    const frase = escrito && escrito.trim() ? escrito : padrao
-
-    if (!dados) return frase
-
-    return Object.entries(dados).reduce(
-        (texto, [etiqueta, valor]) => texto.split(`{${etiqueta}}`).join(valor),
-        frase,
-    )
 }
