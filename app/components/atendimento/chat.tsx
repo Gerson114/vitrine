@@ -56,6 +56,8 @@ const SILENCIO_ATE_AFROUXAR = 90_000
 
 interface Mensagem {
     id: number
+
+    /** "cliente", "loja" ou "sistema" — o aviso automático do atendimento. */
     autor: string
     texto: string
     criada_em: string
@@ -384,6 +386,24 @@ export default function ChatDaLoja() {
                                 {mensagens.map((mensagem) => {
 
                                     const minha = mensagem.autor === "cliente"
+
+                                    /* O aviso automático da loja — que a
+                                       mensagem chegou, que fulano assumiu, que
+                                       o atendimento acabou — não é fala de
+                                       pessoa nenhuma, e um balão o faria
+                                       parecer alguém respondendo. Vai no meio
+                                       do fio, discreto: é informação sobre a
+                                       conversa, não conversa. */
+                                    if (mensagem.autor === "sistema") {
+                                        return (
+                                            <p
+                                                key={mensagem.id}
+                                                className="mx-auto max-w-[85%] text-center text-[0.72rem] italic leading-relaxed text-[var(--ink-3)]"
+                                            >
+                                                {mensagem.texto}
+                                            </p>
+                                        )
+                                    }
 
                                     return (
                                         <div
