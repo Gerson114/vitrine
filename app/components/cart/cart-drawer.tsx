@@ -104,8 +104,21 @@ export default function CartDrawer() {
     const podeEntregar = cotacao ? cotacao.disponivel : true
     const podeRetirar = cotacao ? cotacao.retirada_na_loja : true
 
-    // Loja que só entrega não deve mostrar o pedido como retirada.
-    const querEntrega = entrega.tipo === "entrega" || (!podeRetirar && podeEntregar)
+    /* Loja que só entrega não deve mostrar o pedido como retirada — e o
+       contrário também vale, que é o que faltava aqui: escolher "Receber em
+       casa" numa loja com a entrega desligada mandava o pedido com
+       tipo "entrega", o servidor o gravava como retirada (ver
+       resolverEntrega, no backend) e o lojista via "o cliente vai buscar" um
+       pedido que o cliente pediu para receber. `podeEntregar` vira condição,
+       e não só um dos caminhos. Enquanto a cotação não chega ele é `true`,
+       então nada muda antes de a loja responder se entrega ou não. */
+    const querEntrega = podeEntregar && (entrega.tipo === "entrega" || !podeRetirar)
+
+    /* A loja respondeu que não entrega, e o cliente já tinha escolhido
+       receber em casa. A escolha desaparece da tela sozinha (os dois cartões
+       só aparecem quando as duas opções existem), e sumir sem dizer nada é
+       como a pessoa acaba num pedido de retirada sem ter mudado de ideia. */
+    const entregaRecusada = Boolean(cotacao) && !podeEntregar && entrega.tipo === "entrega"
 
     const freteAtual = querEntrega && cotacao && cotacao.disponivel ? cotacao.valor : 0
     const totalComFrete = totalPreco + freteAtual
@@ -483,6 +496,17 @@ export default function CartDrawer() {
 
                                         </div>
                                     </Secao>
+                                ) : null}
+
+                                {/* Dito na tela, e não descoberto no comprovante:
+                                    o pedido vai sair como retirada porque a loja
+                                    não entrega, e não porque alguém trocou a
+                                    escolha. */}
+                                {entregaRecusada ? (
+                                    <p className="flex items-start gap-2 rounded-[var(--radius-sm)] bg-[var(--placa)] px-3 py-2 text-[0.8rem] font-semibold text-[var(--ink)]">
+                                        <FiHome className="mt-0.5 w-4 shrink-0" aria-hidden />
+                                        Esta loja ainda não faz entrega. O pedido vai como retirada no balcão.
+                                    </p>
                                 ) : null}
 
                                 {/* O contato do pedido. Vem antes do endereço e
