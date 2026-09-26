@@ -1,5 +1,6 @@
 import { API_BASE, erroDoBackend, safeParse, slugValido, tokenDaLoja } from "@/lib/conta"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend, TEMPO_LIMITE_PAGAMENTO } from "@/lib/backend"
 
 /**
  * Confere o pagamento do próprio pedido, ao voltar do provedor.
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
             return /^[A-Za-z0-9_-]*$/.test(texto) ? texto : ""
         }
 
-        const resposta = await fetch(
+        const resposta = await chamarBackend(
             new URL(`/public/loja/${loja}/pedidos/${codigo}/verificar`, API_BASE),
             {
                 method: "POST",
@@ -61,8 +62,10 @@ export async function POST(request: Request) {
                     transacao: identificador(entrada.transacao),
                     fatura: identificador(entrada.fatura),
                 }),
-                cache: "no-store",
             },
+            // Esta chamada atravessa o backend e vai perguntar à InfinitePay, na
+            // internet aberta: o teto é o do pagamento, não o das telas.
+            TEMPO_LIMITE_PAGAMENTO,
         )
 
         const dados = safeParse(await resposta.text())

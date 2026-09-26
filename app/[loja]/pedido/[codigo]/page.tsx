@@ -648,7 +648,7 @@ export default function PedidoPage() {
 
                             <p className="mt-2 text-[0.78rem] text-[var(--ink-3)]">
                                 Feito em {formatarData(pedido.created_at)} · {pecas}{" "}
-                                {pecas === 1 ? "peça" : "peças"}
+                                {pecas === 1 ? "item" : "itens"}
                             </p>
                         </div>
 
@@ -1094,7 +1094,7 @@ export default function PedidoPage() {
 
                                 <div className="flex items-baseline justify-between gap-3 text-[0.85rem] text-[var(--ink-2)]">
                                     <span>
-                                        Produtos ({pecas} {pecas === 1 ? "peça" : "peças"})
+                                        Produtos ({pecas} {pecas === 1 ? "item" : "itens"})
                                     </span>
                                     <span className="num">{formatarMoeda(subtotal)}</span>
                                 </div>

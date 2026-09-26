@@ -6,6 +6,7 @@ import { FiCamera, FiCheck, FiHome, FiLock, FiMinus, FiPlus, FiShoppingBag, FiTr
 import { ENTREGA_VAZIA, useCarrinho } from "@/app/cart/cart-context"
 import type { Cotacao, Entrega } from "@/app/cart/cart-context"
 import { useLoja, useTexto } from "@/app/loja/loja-context"
+import type { AtendimentoDaLoja } from "@/app/loja/loja-context"
 import { useConta } from "@/app/conta/conta-context"
 import { descreverVariacao } from "@/lib/variantes"
 import { caminhoDaLoja } from "@/lib/caminhos"
@@ -45,6 +46,30 @@ export default function CartDrawer() {
     const [etapa, setEtapa] = useState<Etapa>("carrinho")
     const [enviando, setEnviando] = useState(false)
     const [erro, setErro] = useState("")
+
+    /* A hora que a pessoa marcou, no formato do <input type="datetime-local">
+       ("2026-09-15T12:30"). Vazio é "para agora".
+
+       Nasce vazio mesmo na loja que SÓ agenda: preencher com um palpite faria
+       alguém fechar sem ler, e a hora da entrega de comida não é detalhe. */
+    const [agendadoPara, setAgendadoPara] = useState("")
+
+    /* Para agora, ou marcado para depois.
+    
+       É uma escolha explícita, com dois botões, e não um campo de data que a
+       pessoa deixa em branco. Deixar em branco "querendo agora" funciona para
+       quem leu a tela inteira; quem só quer pedir a pizza passa direto e nunca
+       descobre que dava para marcar. Na cozinha que só agenda, a escolha não
+       existe e o campo é obrigatório. */
+    const [quando, setQuando] = useState<"agora" | "agendado">("agora")
+
+    /* Pagar tudo agora, ou só a entrada.
+    
+       Nasce em "tudo": quem não parou para escolher paga o pedido inteiro, que
+       é o que a loja prefere e o que o cliente espera. A entrada é uma escolha
+       consciente, com o valor escrito ao lado — não um padrão que alguém
+       descobre no extrato. */
+    const [pagamento, setPagamento] = useState<"tudo" | "entrada">("tudo")
     const [codigoPedido, setCodigoPedido] = useState("")
 
     // ── A entrega ────────────────────────────────────────────────────────
@@ -86,6 +111,76 @@ export default function CartDrawer() {
     const totalComFrete = totalPreco + freteAtual
 
     const quantidadeTotal = itens.reduce((soma, item) => soma + item.quantidade, 0)
+
+    /* ------------------------------------------------------------------
+       COMIDA: a hora e o mínimo
+
+       A loja de mercadoria não passa por nada disto — `atendimento` chega
+       com ramo "produtos" e as duas regras somem da tela. Quem decide é o
+       servidor, sempre: estes valores só existem aqui para a pessoa saber
+       antes de clicar, em vez de descobrir na recusa.
+       ------------------------------------------------------------------ */
+    const atendimento = loja.atendimento
+    const ehComida = atendimento?.ramo === "comida"
+    const agenda = Boolean(atendimento?.aceita_agendamento)
+    const aceitaNaHora = Boolean(atendimento?.aceita_na_hora)
+    const soAgendado = Boolean(ehComida && agenda && !aceitaNaHora)
+    const preparo = atendimento?.minutos_de_preparo ?? 0
+
+    // Na cozinha que SÓ agenda não há escolha a fazer: o modo é agendado,
+    // qualquer que seja o botão que a pessoa não viu.
+    const modoDaEntrega = soAgendado ? "agendado" : quando
+
+    const perguntaQuando = ehComida && (agenda || preparo > 0)
+
+    /* A entrada: uma parte agora, o resto na entrega.
+
+       Só aparece com provedor de pagamento conectado. Combinar no WhatsApp já
+       é um acerto direto entre as duas pessoas — parcelar o que já é combinado
+       na conversa seria uma regra a mais para explicar e nenhuma a menos para
+       cumprir.
+
+       O valor é calculado aqui para a pessoa LER antes de decidir, mas quem
+       manda é o servidor: ele recalcula sobre o pedido gravado e congela lá. */
+    const ofereceEntrada = Boolean(atendimento?.aceita_entrada) && Boolean(loja.aceita_pagamento)
+    const percentualDaEntrada = atendimento?.percentual_da_entrada ?? 50
+
+    /* Existe algum caminho para fechar este pedido?
+    
+       São dois: o provedor de pagamento da loja, e combinar na conversa. Sem
+       nenhum dos dois não há botão a desenhar — e é justamente aí que a tela
+       precisa falar, em vez de terminar em branco. */
+    const temComoPagar = Boolean(loja.aceita_pagamento) || Boolean(loja.combina_no_whatsapp)
+
+    const valorDaEntrada = Math.round(totalComFrete * percentualDaEntrada) / 100
+    const valorDoRestante = totalComFrete - valorDaEntrada
+
+    /* Os números dos passos, contados UMA vez e na ordem em que as seções
+       aparecem.
+    
+       Cada seção calculava o próprio número com uma conta sua — e no dia em
+       que "Quando você quer receber" entrou no meio, ela e "Endereço de
+       entrega" passaram a mostrar "4" as duas. Contar num lugar só é o que
+       impede a próxima seção de repetir o erro: quem entra no meio não precisa
+       saber de ninguém. */
+    const numeroDaSecao = (() => {
+
+        let atual = 0
+        const proximo = () => ++atual
+
+        return {
+            quemCompra: proximo(),
+            comoReceber: podeEntregar && podeRetirar ? proximo() : 0,
+            contato: proximo(),
+            quando: perguntaQuando ? proximo() : 0,
+            endereco: querEntrega ? proximo() : 0,
+            pagamento: ofereceEntrada ? proximo() : 0,
+        }
+    })()
+
+    const minimo = atendimento?.pedido_minimo ?? 0
+    const faltaParaOMinimo = minimo > 0 ? minimo - totalPreco : 0
+    const abaixoDoMinimo = faltaParaOMinimo > 0.005
 
     if (!aberto) return null
 
@@ -136,13 +231,35 @@ export default function CartDrawer() {
     async function enviarPedido(e?: React.FormEvent<HTMLFormElement>, forma?: "whatsapp") {
         e?.preventDefault()
 
+        // Quem não disse a forma está submetendo o FORMULÁRIO, e numa loja que
+        // só combina na conversa isso é o WhatsApp — não existe outra.
+        //
+        // O defeito que isto corrige: o único botão type="submit" é o "ir para
+        // o pagamento", e ele não é renderizado quando soCombina. O do WhatsApp
+        // é type="button" com onClick. Só que formulário com campo de texto
+        // submete no Enter mesmo sem botão de submit, e digitar o telefone e
+        // apertar Enter é o gesto mais comum que existe. Nesse caminho a forma
+        // chegava vazia, o backend pulava o trecho do WhatsApp e tentava abrir
+        // cobrança numa loja sem provedor — a pessoa lia "esta loja ainda não
+        // está aceitando pagamento pelo site" numa loja que aceita, só que pela
+        // conversa.
+        const comoPaga = forma ?? (soCombina ? "whatsapp" : undefined)
+
+        // O botão do WhatsApp é type="button" e não passa pelo `required` do
+        // formulário: sem esta conferência, quem escolhesse "Agendar" e não
+        // marcasse a hora fecharia o pedido como se fosse para agora.
+        if (modoDaEntrega === "agendado" && agendadoPara.trim() === "") {
+            setErro("Escolha o dia e a hora da entrega.")
+            return
+        }
+
         setEnviando(true)
         setErro("")
 
         const resultado = await finalizarPedido({
             ...entrega,
             tipo: querEntrega ? "entrega" : "retirada",
-        }, forma)
+        }, comoPaga, modoDaEntrega === "agendado" ? agendadoPara : "", ofereceEntrada && pagamento === "entrada")
 
         setEnviando(false)
 
@@ -285,7 +402,7 @@ export default function CartDrawer() {
                             histórico de cada cliente em vez de um cadastro novo
                             por compra. */}
                         {conta ? (
-                            <Secao numero={1} titulo={t("sacola.quem_compra", "Quem está comprando")}>
+                            <Secao numero={numeroDaSecao.quemCompra} titulo={t("sacola.quem_compra", "Quem está comprando")}>
                                 <div className="flex items-center gap-3">
                                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--placa-forte)] text-[var(--ink-2)]">
                                         <FiUser className="w-5" aria-hidden />
@@ -345,7 +462,7 @@ export default function CartDrawer() {
                                     entre eles, e essa diferença muda o preço e
                                     o que se pede a seguir. */}
                                 {podeEntregar && podeRetirar ? (
-                                    <Secao numero={2} titulo={t("sacola.como_receber", "Como você quer receber")}>
+                                    <Secao numero={numeroDaSecao.comoReceber} titulo={t("sacola.como_receber", "Como você quer receber")}>
                                         <div className="grid gap-2 sm:grid-cols-2">
 
                                             <OpcaoEntrega
@@ -375,7 +492,7 @@ export default function CartDrawer() {
                                     A conta tem e-mail, e e-mail não resolve
                                     entrega. */}
                                 <Secao
-                                    numero={podeEntregar && podeRetirar ? 3 : 2}
+                                    numero={numeroDaSecao.contato}
                                     titulo="Contato para este pedido"
                                 >
                                     <label className="rotulo-campo" htmlFor="telefone">
@@ -400,9 +517,79 @@ export default function CartDrawer() {
                                     </p>
                                 </Secao>
 
+                                {/* ---------------------------------------------
+                                    QUANDO
+
+                                    Só na loja de comida. A de mercadoria não
+                                    pergunta hora nenhuma: o prazo dela é o do
+                                    frete, e quem escolhe é a transportadora.
+                                    --------------------------------------------- */}
+                                {perguntaQuando ? (
+                                    <Secao
+                                        numero={numeroDaSecao.quando}
+                                        titulo="Quando você quer receber"
+                                    >
+                                        {/* Os dois caminhos, lado a lado, quando a
+                                            cozinha faz os dois. O tempo de preparo
+                                            fica DENTRO do botão "para agora": é a
+                                            resposta da pergunta que a pessoa está
+                                            fazendo ao clicar nele. */}
+                                        {agenda && aceitaNaHora ? (
+                                            <div className="grid grid-cols-2 gap-2">
+
+                                                <Escolha
+                                                    escolhida={modoDaEntrega === "agora"}
+                                                    aoEscolher={() => { setQuando("agora"); setAgendadoPara("") }}
+                                                    titulo="Para agora"
+                                                    detalhe={preparo > 0 ? `fica pronto em ~${preparo} min` : "assim que der"}
+                                                />
+
+                                                <Escolha
+                                                    escolhida={modoDaEntrega === "agendado"}
+                                                    aoEscolher={() => setQuando("agendado")}
+                                                    titulo="Agendar"
+                                                    detalhe="escolher dia e hora"
+                                                />
+                                            </div>
+                                        ) : null}
+
+                                        {modoDaEntrega === "agendado" ? (
+                                            <div className={agenda && aceitaNaHora ? "mt-3" : ""}>
+                                                <label className="rotulo-campo" htmlFor="agendado">Dia e hora</label>
+
+                                                <input
+                                                    id="agendado"
+                                                    type="datetime-local"
+                                                    value={agendadoPara}
+                                                    onChange={(e) => setAgendadoPara(e.target.value)}
+                                                    min={horarioMinimo(atendimento?.minutos_de_antecedencia ?? 0)}
+                                                    max={horarioMaximo(atendimento?.dias_para_agendar ?? 7)}
+                                                    required
+                                                    className="campo mt-1.5"
+                                                />
+
+                                                <p className="mt-1.5 text-[0.72rem] text-[var(--ink-3)]">
+                                                    {textoDaAgenda(atendimento)}
+                                                </p>
+                                            </div>
+                                        ) : null}
+
+                                        {/* A cozinha que só faz na hora não tem o
+                                            que perguntar — mas tem o que prometer,
+                                            e é a primeira pergunta de quem pede
+                                            comida. */}
+                                        {!agenda && preparo > 0 ? (
+                                            <p className="text-[0.8rem] text-[var(--ink-2)]">
+                                                A loja prepara em cerca de {preparo} minutos depois de
+                                                confirmar o pedido.
+                                            </p>
+                                        ) : null}
+                                    </Secao>
+                                ) : null}
+
                                 {querEntrega ? (
                                     <Secao
-                                        numero={podeEntregar && podeRetirar ? 4 : 3}
+                                        numero={numeroDaSecao.endereco}
                                         titulo="Endereço de entrega"
                                     >
                                         <div className="space-y-3">
@@ -577,6 +764,63 @@ export default function CartDrawer() {
                         ) : null}
 
                         <div className="mt-4 space-y-2">
+                            {/* O mínimo da loja, dito ANTES do botão e com o
+                                quanto falta. "Pedido mínimo R$ 30" sozinho faz
+                                a pessoa somar de cabeça; "faltam R$ 8,50" faz
+                                ela voltar e pôr mais um item. */}
+                            {abaixoDoMinimo ? (
+                                <p className="rounded-[var(--radius-md)] bg-[var(--placa)] px-4 py-3 text-center text-[0.8rem] text-[var(--ink-2)]">
+                                    Esta loja fecha pedido a partir de{" "}
+                                    <strong className="font-bold text-[var(--ink)]">{formatarMoeda(minimo)}</strong>.
+                                    Faltam <strong className="font-bold text-[var(--ink)]">{formatarMoeda(faltaParaOMinimo)}</strong>.
+                                </p>
+                            ) : null}
+
+            {/* ---------------------------------------------------------
+                PAGAR TUDO, OU SÓ A ENTRADA
+
+                É uma SEÇÃO numerada como as outras, e não um par de caixas
+                solto acima do botão. Foi assim que nasceu, e ninguém a viu:
+                sem título, dois retângulos entre o resumo e o botão não se
+                leem como uma pergunta — leem-se como enfeite, e a pessoa
+                clica em "ir para o pagamento" sem saber que havia escolha.
+
+                Some quando a loja não parcela, que é o caso da maioria. */}
+            {conta && ofereceEntrada ? (
+                <Secao numero={numeroDaSecao.pagamento} titulo="Como você quer pagar">
+                    <div className="grid grid-cols-2 gap-2">
+
+                        <Escolha
+                            escolhida={pagamento === "tudo"}
+                            aoEscolher={() => setPagamento("tudo")}
+                            titulo="Pagar tudo agora"
+                            detalhe={formatarMoeda(totalComFrete)}
+                        />
+
+                        <Escolha
+                            escolhida={pagamento === "entrada"}
+                            aoEscolher={() => setPagamento("entrada")}
+                            titulo={`Entrada de ${percentualDaEntrada}%`}
+                            detalhe={`${formatarMoeda(valorDaEntrada)} agora`}
+                        />
+                    </div>
+
+                    {/* O que sobra, dito com todas as letras: quem escolhe
+                        entrada precisa saber quanto vai pagar na porta, e
+                        descobrir isso na entrega é como se perde um cliente. */}
+                    {pagamento === "entrada" ? (
+                        <p className="mt-3 rounded-[var(--radius-md)] bg-[var(--placa)] px-4 py-3 text-[0.8rem] leading-relaxed text-[var(--ink-2)]">
+                            Você paga{" "}
+                            <strong className="num font-bold text-[var(--ink)]">{formatarMoeda(valorDaEntrada)}</strong>{" "}
+                            agora e os{" "}
+                            <strong className="num font-bold text-[var(--ink)]">{formatarMoeda(valorDoRestante)}</strong>{" "}
+                            restantes direto para a loja na entrega.
+                        </p>
+                    ) : null}
+                </Secao>
+            ) : null}
+
+
                             {conta ? (
                                 <>
                                     {/* Duas formas de fechar, e a ordem importa: quem
@@ -585,15 +829,19 @@ export default function CartDrawer() {
                                         quem prefere falar com a loja — e é o único que
                                         existe quando ela não conectou provedor. */}
                                     {loja.aceita_pagamento && !soCombina ? (
-                                        <button type="submit" disabled={enviando} className="btn w-full py-3.5 text-[0.95rem]">
-                                            {enviando ? "enviando…" : "ir para o pagamento"}
+                                        <button type="submit" disabled={enviando || abaixoDoMinimo} className="btn w-full py-3.5 text-[0.95rem]">
+                                            {enviando
+                                                ? "enviando…"
+                                                : ofereceEntrada && pagamento === "entrada"
+                                                    ? `pagar a entrada · ${formatarMoeda(valorDaEntrada)}`
+                                                    : "ir para o pagamento"}
                                         </button>
                                     ) : null}
 
                                     {loja.combina_no_whatsapp ? (
                                         <button
                                             type="button"
-                                            disabled={enviando}
+                                            disabled={enviando || abaixoDoMinimo}
                                             onClick={() => void enviarPedido(undefined, "whatsapp")}
                                             className={`w-full py-3.5 text-[0.95rem] ${soCombina ? "btn" : "btn btn-claro"}`}
                                         >
@@ -601,12 +849,31 @@ export default function CartDrawer() {
                                         </button>
                                     ) : null}
 
-                                    <p className="flex items-center justify-center gap-1.5 text-center text-[0.72rem] text-[var(--ink-3)]">
-                                        <FiLock className="w-3 shrink-0" aria-hidden />
-                                        {soCombina
-                                            ? "Seu pedido fica reservado e você acerta o pagamento direto com a loja."
-                                            : "O pagamento acontece no ambiente do provedor"}
-                                    </p>
+                                    {/* Loja sem provedor e sem WhatsApp: não há
+                                        botão nenhum a mostrar, e antes disto a
+                                        tela simplesmente terminava — o comprador
+                                        chegava ao fim do checkout, com endereço
+                                        preenchido, e não tinha o que clicar.
+                                        Pior: lia "o pagamento acontece no
+                                        ambiente do provedor" numa loja que não
+                                        conectou provedor nenhum.
+                                    
+                                        Dizer o que está faltando não conserta a
+                                        loja, mas devolve a saída a quem estava
+                                        preso: fale com a gente. */}
+                                    {!temComoPagar ? (
+                                        <p className="rounded-[var(--radius-md)] bg-[var(--placa)] px-4 py-3 text-center text-[0.8rem] leading-relaxed text-[var(--ink-2)]">
+                                            Esta loja ainda não configurou como receber pagamento pelo site.
+                                            Fale com ela para combinar o seu pedido.
+                                        </p>
+                                    ) : (
+                                        <p className="flex items-center justify-center gap-1.5 text-center text-[0.72rem] text-[var(--ink-3)]">
+                                            <FiLock className="w-3 shrink-0" aria-hidden />
+                                            {soCombina
+                                                ? "Seu pedido fica reservado e você acerta o pagamento direto com a loja."
+                                                : "O pagamento acontece no ambiente do provedor"}
+                                        </p>
+                                    )}
                                 </>
                             ) : null}
 
@@ -644,13 +911,19 @@ export default function CartDrawer() {
                         <ul className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-5 sm:px-6">
                             {itens.map((item) => {
 
-                                const unitario = item.produto.preco_promocional ?? item.produto.preco
+                                // O preço da linha inclui o que foi escolhido:
+                                // "pizza R$ 45 + borda R$ 8" custa R$ 53, e
+                                // mostrar R$ 45 aqui faria o total da sacola
+                                // não bater com a soma das linhas.
+                                const unitario = (item.produto.preco_promocional ?? item.produto.preco) +
+                                    (item.adicionais ?? []).reduce((soma, a) => soma + a.preco, 0)
+
                                 const subtotal = unitario * item.quantidade
                                 const variacao = descreverVariacao(item.produto)
 
                                 return (
 
-                                    <li key={item.produto.id} className="card flex gap-3 p-2.5">
+                                    <li key={item.id} className="card flex gap-3 p-2.5">
 
                                         {/* Fundo branco e borda, como na
                                             vitrine: a placa cinza deixava a
@@ -683,6 +956,24 @@ export default function CartDrawer() {
                                                             {variacao}
                                                         </p>
                                                     ) : null}
+
+                                                    {/* O que foi escolhido e o
+                                                        recado, na própria linha:
+                                                        é o que separa esta linha
+                                                        da outra do mesmo produto,
+                                                        e sem isso as duas ficam
+                                                        idênticas na tela. */}
+                                                    {item.adicionais && item.adicionais.length > 0 ? (
+                                                        <p className="mt-0.5 text-[0.72rem] leading-snug text-[var(--ink-2)]">
+                                                            {item.adicionais.map((a) => a.nome).join(" · ")}
+                                                        </p>
+                                                    ) : null}
+
+                                                    {item.observacao ? (
+                                                        <p className="mt-0.5 text-[0.72rem] italic leading-snug text-[var(--ink-3)]">
+                                                            “{item.observacao}”
+                                                        </p>
+                                                    ) : null}
                                                 </div>
 
                                                 {/* Remover virou ícone e foi
@@ -693,7 +984,7 @@ export default function CartDrawer() {
                                                     não tem volta. */}
                                                 <button
                                                     type="button"
-                                                    onClick={() => remover(item.produto.id)}
+                                                    onClick={() => remover(item.id)}
                                                     aria-label={`Remover ${item.produto.nome} da sacola`}
                                                     className="-m-1 shrink-0 rounded-[var(--radius-sm)] p-1 text-[var(--ink-3)] transition-colors hover:text-[var(--vermelho)]"
                                                 >
@@ -713,7 +1004,7 @@ export default function CartDrawer() {
                                                 <div className="flex items-center overflow-hidden rounded-[var(--radius-sm)] border border-[var(--linha)]">
                                                     <button
                                                         type="button"
-                                                        onClick={() => definirQuantidade(item.produto.id, item.quantidade - 1)}
+                                                        onClick={() => definirQuantidade(item.id, item.quantidade - 1)}
                                                         disabled={item.quantidade <= 1}
                                                         aria-label="Diminuir quantidade"
                                                         className="flex h-8 w-8 items-center justify-center text-[var(--ink-2)] transition-colors hover:bg-[var(--placa)] disabled:cursor-not-allowed disabled:opacity-35"
@@ -727,7 +1018,7 @@ export default function CartDrawer() {
 
                                                     <button
                                                         type="button"
-                                                        onClick={() => definirQuantidade(item.produto.id, item.quantidade + 1)}
+                                                        onClick={() => definirQuantidade(item.id, item.quantidade + 1)}
                                                         disabled={item.quantidade >= item.produto.estoque}
                                                         aria-label="Aumentar quantidade"
                                                         className="flex h-8 w-8 items-center justify-center text-[var(--ink-2)] transition-colors hover:bg-[var(--placa)] disabled:cursor-not-allowed disabled:opacity-35"
@@ -949,6 +1240,119 @@ function OpcaoEntrega({ escolhida, aoEscolher, Icone, titulo, texto }: {
 
                 <span className="mt-0.5 block line-clamp-2 text-[0.72rem] leading-snug text-[var(--ink-3)]">
                     {texto}
+                </span>
+            </span>
+        </button>
+    )
+}
+
+/* ==========================================================================
+   A agenda da comida
+
+   As três funções abaixo só desenham o que dá para escolher. Quem RECUSA uma
+   hora fora do combinado é o servidor (ver resolverAgendamento): o campo aqui
+   evita que a pessoa escolha errado, não que ela mande errado.
+   ========================================================================== */
+
+/** O primeiro horário que a loja aceita, no formato do campo. */
+function horarioMinimo(minutosDeAntecedencia: number): string {
+    return paraOCampo(new Date(Date.now() + minutosDeAntecedencia * 60_000))
+}
+
+/** O último dia da agenda, no fim daquele dia. */
+function horarioMaximo(dias: number): string {
+
+    const limite = new Date()
+
+    limite.setDate(limite.getDate() + dias)
+    limite.setHours(23, 59, 0, 0)
+
+    return paraOCampo(limite)
+}
+
+/**
+ * Um instante no formato que o <input type="datetime-local"> entende.
+ *
+ * Montado a partir da hora LOCAL, e não de toISOString(): aquele devolve UTC,
+ * e num país a três horas de Greenwich o campo abriria com a hora errada — e
+ * o mínimo cairia três horas antes do que a loja aceita.
+ */
+function paraOCampo(quando: Date): string {
+
+    const doisDigitos = (n: number) => String(n).padStart(2, "0")
+
+    return `${quando.getFullYear()}-${doisDigitos(quando.getMonth() + 1)}-${doisDigitos(quando.getDate())}` +
+        `T${doisDigitos(quando.getHours())}:${doisDigitos(quando.getMinutes())}`
+}
+
+/** A explicação embaixo do campo, nas palavras da regra que a loja escolheu. */
+function textoDaAgenda(atendimento?: AtendimentoDaLoja): string {
+
+    if (!atendimento) return ""
+
+    const antecedencia = atendimento.minutos_de_antecedencia ?? 0
+    const dias = atendimento.dias_para_agendar ?? 7
+
+    const quanto = antecedencia >= 1440 && antecedencia % 1440 === 0
+        ? `${antecedencia / 1440} dia(s)`
+        : antecedencia >= 60 && antecedencia % 60 === 0
+            ? `${antecedencia / 60} hora(s)`
+            : `${antecedencia} minutos`
+
+    const comAntecedencia = antecedencia > 0 ? `com pelo menos ${quanto} de antecedência, ` : ""
+
+    return `A loja aceita ${comAntecedencia}até ${dias} dia(s) à frente.`
+}
+
+/**
+ * Uma escolha entre duas, do tamanho de um alvo de dedo.
+ *
+ * O estado escolhido precisa ser ÓBVIO, e a primeira versão errou exatamente
+ * nisso: um fundo com 8% da cor da marca some num tema claro, e as duas
+ * opções ficavam idênticas na tela. Quem olhou não viu escolha nenhuma —
+ * viu dois retângulos, e clicou no botão de baixo.
+ *
+ * O que marca agora são três coisas ao mesmo tempo, e nenhuma depende de o
+ * tema da loja ter contraste: a borda de 2px na cor da marca, o texto em
+ * negrito e o círculo com o "certo" dentro. Em preto e branco, em amarelo ou
+ * em azul-marinho, dá para ver qual está escolhida.
+ */
+function Escolha({ escolhida, aoEscolher, titulo, detalhe }: {
+    escolhida: boolean
+    aoEscolher: () => void
+    titulo: string
+    detalhe: string
+}) {
+
+    return (
+        <button
+            type="button"
+            onClick={aoEscolher}
+            aria-pressed={escolhida}
+            className={`flex items-start gap-2.5 rounded-[var(--radius-md)] px-3 py-3 text-left transition-colors ${
+                escolhida
+                    ? "border-2 border-[var(--destaque)] bg-[var(--fundo)]"
+                    : "border border-[var(--linha)] hover:bg-[var(--placa)]"
+            }`}
+        >
+            <span
+                aria-hidden
+                className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                    escolhida
+                        ? "border-[var(--destaque)] bg-[var(--destaque)] text-[var(--sobre-destaque)]"
+                        : "border-[var(--linha-forte)]"
+                }`}
+            >
+                {escolhida ? <FiCheck className="w-2.5" /> : null}
+            </span>
+
+            <span className="min-w-0">
+                <span className={`block text-[0.85rem] text-[var(--ink)] ${escolhida ? "font-bold" : "font-semibold"}`}>
+                    {titulo}
+                </span>
+
+                <span className="num mt-0.5 block text-[0.72rem] text-[var(--ink-2)]">
+                    {detalhe}
                 </span>
             </span>
         </button>

@@ -40,6 +40,30 @@ export interface Produto {
      */
     nota_media?: number
     avaliacoes?: number
+
+    /**
+     * Este produto pede uma escolha antes de ir para a sacola: borda,
+     * tamanho, ponto da carne.
+     *
+     * Um booleano basta porque serve a uma decisão só: com pergunta, o botão
+     * do card leva à ficha em vez de pôr na sacola direto — senão a pizza
+     * entraria sem borda e o pedido seria recusado só no fim do checkout,
+     * que é o pior lugar para descobrir isso.
+     */
+    tem_perguntas?: boolean
+
+    /**
+     * Este item não é contado unidade a unidade: ele é feito quando alguém
+     * pede.
+     *
+     * Muda o que "esgotado" quer dizer. Em quem conta, esgotado é estoque
+     * zero; aqui é o lojista ter desligado o "tem hoje?" — a cozinha às oito
+     * da noite, quando acaba a massa.
+     */
+    sem_contagem?: boolean
+
+    /** O "tem hoje?" de quem não conta estoque. */
+    disponivel?: boolean
 }
 
 /** Slide do banner do topo, configurado pelo lojista no admin. */

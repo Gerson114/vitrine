@@ -7,6 +7,23 @@ import { clienteLogado, meusPedidos } from "@/lib/conta"
 import { caminhoDaLoja } from "@/lib/caminhos"
 import CartaoPedido from "@/app/components/pedido/cartao-pedido"
 import MeusDados from "@/app/components/conta/meus-dados"
+import type { Metadata } from "next"
+
+/**
+ * Fora do índice de busca.
+ *
+ * Esta tela mostra nome, e-mail, endereço e o que a pessoa comprou. Ela exige
+ * sessão, então o robô nunca vê o conteúdo — mas sem este `noindex` o ENDEREÇO
+ * dela entra no índice de qualquer forma, por qualquer link que aponte para
+ * cá, e uma loja não deve ter "meus pedidos de <nome>" achável no Google.
+ *
+ * É o par do Disallow em app/robots.ts, e não o substitui: o robots.txt pede
+ * para não rastrear, este cabeçalho manda não indexar. Buscador que ignora o
+ * primeiro costuma respeitar o segundo.
+ */
+export const metadata: Metadata = {
+    robots: { index: false, follow: false },
+}
 
 /**
  * Meus pedidos.

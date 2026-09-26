@@ -1,5 +1,6 @@
 import { API_BASE, slugValido, tokenDaLoja } from "@/lib/conta"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 /**
  * "O cliente está digitando…" a caminho da loja.
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
 
         if (!token) return new Response(null, { status: 204 })
 
-        await fetch(new URL(`/public/loja/${loja}/atendimento/digitando`, API_BASE), {
+        await chamarBackend(new URL(`/public/loja/${loja}/atendimento/digitando`, API_BASE), {
             method: "POST",
             headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
             cache: "no-store",

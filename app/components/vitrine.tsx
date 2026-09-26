@@ -498,6 +498,6 @@ function tituloDaGrade(busca: string, categoria: string | null): string {
 
 function mensagemVazio(busca: string, categoria: string | null): string {
     if (busca.trim()) return `Não encontramos nada para "${busca.trim()}". Tente outra palavra.`
-    if (categoria) return "Esta categoria está sem peças no momento."
+    if (categoria) return "Esta categoria está sem produtos no momento."
     return "O catálogo ainda não tem produtos publicados."
 }

@@ -1,5 +1,6 @@
 import { API_BASE, cookieApagado, slugValido, tokenDaLoja } from "@/lib/conta"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 // Sair da conta.
 //
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
             // Falha aqui não impede a saída: o cookie é apagado de qualquer
             // jeito, e ficar preso numa conta por causa de um erro de rede
             // seria pior do que uma sessão que sobrevive no servidor.
-            await fetch(new URL(`/public/loja/${loja}/logout`, API_BASE), {
+            await chamarBackend(new URL(`/public/loja/${loja}/logout`, API_BASE), {
                 method: "POST",
                 headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
                 cache: "no-store",

@@ -1,4 +1,6 @@
+import { cache } from "react"
 import { cookies } from "next/headers"
+import { chamarBackend } from "@/lib/backend"
 
 // URL do backend. Só o servidor do Next a conhece — o navegador nunca fala
 // direto com ele, mesmo padrão do resto do app.
@@ -32,6 +34,26 @@ export async function tokenDaLoja(loja: string): Promise<string> {
 }
 
 /**
+ * Um token, limpo do que não pode entrar num valor de cookie.
+ *
+ * O token vem do backend, que é nosso — mas ele é CONCATENADO num cabeçalho
+ * Set-Cookie montado à mão, e num lugar assim a origem do dado não é a régua
+ * certa: um `;` no meio dele encerraria o valor e o que viesse depois seria
+ * lido pelo navegador como atributo do cookie (`; Path=/`, `; Max-Age=0`), e
+ * um `\r\n` seria uma tentativa de cortar o cabeçalho em dois. Guardar só o
+ * alfabeto que um token JWT ou opaco usa fecha os dois de uma vez, e custa uma
+ * expressão regular por login.
+ *
+ * Token que fique vazio depois da limpeza é tratado como ausente por quem
+ * chama (ver lib/conta-proxy), que responde 502 em vez de gravar um cookie
+ * quebrado.
+ */
+export function tokenLimpo(bruto: unknown): string {
+    const token = String(bruto ?? "")
+    return /^[A-Za-z0-9._~+/=-]{1,4096}$/.test(token) ? token : ""
+}
+
+/**
  * O cabeçalho Set-Cookie da sessão.
  *
  * httpOnly: o JavaScript da página nunca enxerga o token, então um XSS não o
@@ -42,7 +64,7 @@ export async function tokenDaLoja(loja: string): Promise<string> {
 export function cookieDaSessao(loja: string, token: string): string {
     const seguro = process.env.NODE_ENV === "development" ? "" : "; Secure"
     const validade = 60 * 60 * 24 * 7 // sete dias, igual ao token do backend
-    return `${nomeDoCookie(loja)}=${token}; Path=/; Max-Age=${validade}; HttpOnly; SameSite=Lax${seguro}`
+    return `${nomeDoCookie(loja)}=${tokenLimpo(token)}; Path=/; Max-Age=${validade}; HttpOnly; SameSite=Lax${seguro}`
 }
 
 /** O mesmo cookie, vencido — é assim que se apaga um httpOnly. */
@@ -75,11 +97,15 @@ export interface ClienteLogado {
 /**
  * Quem está logado nesta vitrine, lido no servidor.
  *
+ * Memorizado por requisição (`cache` do React): o layout de [loja] pergunta
+ * para desenhar o cabeçalho e a página de conta pergunta de novo para decidir
+ * o que mostrar. Eram duas idas ao backend com a mesma resposta; agora é uma.
+ *
  * Devolve null sem sessão — e também quando o backend recusa o token, que é o
  * caso de quem saiu da conta noutro aparelho ou de um cookie de loja trocada.
  * A vitrine trata os três como "visitante", que é o que eles são.
  */
-export async function clienteLogado(loja: string): Promise<ClienteLogado | null> {
+export const clienteLogado = cache(async function clienteLogado(loja: string): Promise<ClienteLogado | null> {
 
     if (!slugValido(loja)) return null
 
@@ -88,7 +114,7 @@ export async function clienteLogado(loja: string): Promise<ClienteLogado | null>
     if (!token) return null
 
     try {
-        const resposta = await fetch(new URL(`/public/loja/${loja}/conta`, API_BASE), {
+        const resposta = await chamarBackend(new URL(`/public/loja/${loja}/conta`, API_BASE), {
             headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
             cache: "no-store",
         })
@@ -104,7 +130,7 @@ export async function clienteLogado(loja: string): Promise<ClienteLogado | null>
     } catch {
         return null
     }
-}
+})
 
 export interface ItemDoPedido {
     produto_id: number
@@ -139,11 +165,13 @@ export interface MeuPedido {
 /**
  * Os pedidos de quem está logado nesta loja.
  *
+ * Memorizado por requisição, pelo mesmo motivo de clienteLogado.
+ *
  * Não pede código nenhum: o pedido já tem dono desde que fechar exige conta,
  * então quem provou quem é não deve provar de novo com um número de seis
  * dígitos. Devolve lista vazia sem sessão.
  */
-export async function meusPedidos(loja: string): Promise<MeuPedido[]> {
+export const meusPedidos = cache(async function meusPedidos(loja: string): Promise<MeuPedido[]> {
 
     if (!slugValido(loja)) return []
 
@@ -152,7 +180,7 @@ export async function meusPedidos(loja: string): Promise<MeuPedido[]> {
     if (!token) return []
 
     try {
-        const resposta = await fetch(new URL(`/public/loja/${loja}/pedidos`, API_BASE), {
+        const resposta = await chamarBackend(new URL(`/public/loja/${loja}/pedidos`, API_BASE), {
             headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
             cache: "no-store",
         })
@@ -170,4 +198,4 @@ export async function meusPedidos(loja: string): Promise<MeuPedido[]> {
     } catch {
         return []
     }
-}
+})

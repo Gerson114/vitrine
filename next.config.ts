@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { networkInterfaces } from "node:os";
+import { cabecalhosDeSeguranca } from "./security/cabecalhos";
 
 /**
  * Os endereços IPv4 desta máquina na rede local.
@@ -26,74 +27,28 @@ function iPsDaRedeLocal(): string[] {
     .map((endereco) => endereco.address);
 }
 
-/**
- * O que o navegador pode fazer nas páginas da VITRINE.
- *
- * Ela é a parte exposta na internet aberta: qualquer pessoa carrega, e é onde
- * um XSS custaria mais caro — é aqui que o comprador digita endereço e é
- * levado ao provedor de pagamento.
- *
- * A regra de leitura: tudo o que não está aqui é proibido. `'unsafe-inline'`
- * em script e style é dívida conhecida do Next, que injeta o script de
- * inicialização e os estilos na própria página; mesmo com ele, a política
- * barra script vindo de outro domínio, que é o vetor de uma dependência
- * comprometida.
- */
-function politicaDeConteudo(): string {
-  return [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline'",
-    "font-src 'self' data:",
-
-    // A foto do produto costuma estar hospedada fora — o lojista cola a URL.
-    // Imagem não executa código, e por isso é a permissão larga mais barata.
-    "img-src 'self' data: blob: https:",
-
-    "connect-src 'self'",
-    "media-src 'self' blob: data:",
-    "object-src 'none'",
-    "base-uri 'self'",
-
-    // O formulário desta página só posta para ela mesma. É o que impede um
-    // formulário injetado de mandar o endereço e o telefone do comprador
-    // para outro servidor.
-    "form-action 'self'",
-
-    // Ninguém põe a vitrine dentro de um iframe: é assim que se monta uma
-    // página falsa que parece a loja e captura o clique de comprar.
-    "frame-ancestors 'none'",
-  ].join("; ");
-}
-
 const nextConfig: NextConfig = {
   poweredByHeader: false,
 
-  // Os cabeçalhos de segurança da vitrine.
-  //
-  // O backend manda os dele nas respostas da API; quem o navegador carrega e
-  // executa é este servidor. Sem estes, a loja ia sem política nenhuma.
-  //
-  // HSTS fica de fora de propósito: quem o emite é quem termina o TLS. Daqui,
-  // em desenvolvimento, ele prenderia localhost em https no navegador.
+  /* Os cabeçalhos de segurança dos caminhos que o PROXY não alcança.
+
+     O matcher de proxy.ts deixa de fora /_next/static, /_next/image e
+     favicon.ico — e o que sai por aqui vale só para eles, porque em tudo o
+     mais o proxy escreve por cima. Não são páginas: não há script inline nem
+     nonce a distribuir, então a política sai na variante sem nonce (ver
+     security/cabecalhos.ts, que é onde a lista mora — escrever uma segunda
+     lista aqui foi o que uma vez deixou a política das páginas proibindo a
+     localização que esta permitia). */
   async headers() {
+
+    const isDev = process.env.NODE_ENV === "development";
+
     return [
       {
         source: "/:caminho*",
-        headers: [
-          { key: "Content-Security-Policy", value: politicaDeConteudo() },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
-
-          // O endereço da página não vaza para terceiros: ele carrega o nome
-          // da loja e, nas telas de pedido, o código dele.
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-
-          // A localização fica liberada para a PRÓPRIA página: é o que faz o
-          // seletor de lojas oferecer a unidade mais perto do cliente. Câmera
-          // e microfone a vitrine não usa.
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
-        ],
+        headers: Object.entries(cabecalhosDeSeguranca("", isDev)).map(
+          ([key, value]) => ({ key, value }),
+        ),
       },
     ];
   },

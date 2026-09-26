@@ -1,4 +1,5 @@
 import { API_BASE, erroDoBackend, safeParse, slugValido } from "@/lib/conta"
+import { chamarBackend } from "@/lib/backend"
 
 /**
  * As outras unidades da mesma rede desta loja.
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
             destino.searchParams.set("lon", String(lon))
         }
 
-        const response = await fetch(destino, {
+        const response = await chamarBackend(destino, {
             headers: { Accept: "application/json" },
             cache: "no-store",
         })

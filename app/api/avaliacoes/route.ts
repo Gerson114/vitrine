@@ -1,5 +1,6 @@
 import { API_BASE, erroDoBackend, safeParse, slugValido, tokenDaLoja } from "@/lib/conta"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 /**
  * As avaliações: as de um produto (públicas) e as que o comprador já deu num
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
 
 async function repassar(endereco: URL, opcoes: RequestInit): Promise<Response> {
 
-    const resposta = await fetch(endereco, { ...opcoes, cache: "no-store" })
+    const resposta = await chamarBackend(endereco, { ...opcoes, cache: "no-store" })
 
     const dados = safeParse(await resposta.text())
 

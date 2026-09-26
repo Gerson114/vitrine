@@ -1,6 +1,7 @@
 import { API_BASE, erroDoBackend, safeParse, slugValido } from "@/lib/conta"
 import { sanitizeText } from "@/security/sanitize"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 /**
  * Esqueci minha senha, nesta loja: pedir o código e trocar a senha com ele.
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
 
         const caminho = trocar ? "senha/redefinir" : "senha/recuperar"
 
-        const resposta = await fetch(new URL(`/public/loja/${loja}/${caminho}`, API_BASE), {
+        const resposta = await chamarBackend(new URL(`/public/loja/${loja}/${caminho}`, API_BASE), {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify(corpo),

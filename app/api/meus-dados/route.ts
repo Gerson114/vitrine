@@ -1,5 +1,6 @@
 import { API_BASE, cookieApagado, erroDoBackend, safeParse, slugValido, tokenDaLoja } from "@/lib/conta"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 /**
  * Os direitos do titular (LGPD): ver o que a loja guarda, e mandar apagar.
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
             return Response.json({ erro: "Entre na sua conta para ver os seus dados" }, { status: 401 })
         }
 
-        const resposta = await fetch(new URL(`/public/loja/${loja}/meus-dados`, API_BASE), {
+        const resposta = await chamarBackend(new URL(`/public/loja/${loja}/meus-dados`, API_BASE), {
             headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
             cache: "no-store",
         })
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
             return Response.json({ erro: "Entre na sua conta para pedir a exclusão" }, { status: 401 })
         }
 
-        const resposta = await fetch(new URL(`/public/loja/${loja}/meus-dados/excluir`, API_BASE), {
+        const resposta = await chamarBackend(new URL(`/public/loja/${loja}/meus-dados/excluir`, API_BASE), {
             method: "POST",
             headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
             cache: "no-store",

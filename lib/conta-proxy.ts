@@ -1,6 +1,7 @@
-import { API_BASE, cookieDaSessao, erroDoBackend, safeParse, slugValido } from "@/lib/conta"
+import { API_BASE, cookieDaSessao, erroDoBackend, safeParse, slugValido, tokenLimpo } from "@/lib/conta"
 import { sanitizeText } from "@/security/sanitize"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 /**
  * O caminho comum de "entrar" e "criar conta": os dois mandam credenciais ao
@@ -36,7 +37,7 @@ export async function abrirSessao(
             return Response.json({ erro: corpo }, { status: 400 })
         }
 
-        const resposta = await fetch(new URL(`/public/loja/${loja}/${caminho}`, API_BASE), {
+        const resposta = await chamarBackend(new URL(`/public/loja/${loja}/${caminho}`, API_BASE), {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify(corpo),
@@ -68,8 +69,12 @@ export async function abrirSessao(
             })
         }
 
+        // tokenLimpo e não String(): o valor é concatenado num Set-Cookie
+        // montado à mão, e um `;` ou um `\r\n` dentro dele viraria atributo de
+        // cookie ou um segundo cabeçalho. Token que não sobrevive à limpeza é
+        // tratado como ausente — 502, e nenhum cookie gravado.
         const token = dados && typeof dados === "object" && "token" in dados
-            ? String((dados as { token: unknown }).token ?? "")
+            ? tokenLimpo((dados as { token: unknown }).token)
             : ""
 
         if (!token) {

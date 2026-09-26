@@ -1,4 +1,5 @@
 import { sanitizeText } from "@/security/sanitize"
+import { chamarBackend } from "@/lib/backend"
 
 // Sem cookie, sem Authorization — a rota pública /public/produtos do
 // backend não exige sessão. Ainda assim passa pelo servidor Next (nunca
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
             url.searchParams.set("nome", nome)
         }
 
-        const response = await fetch(url, {
+        const response = await chamarBackend(url, {
             method: "GET",
             headers: { Accept: "application/json" },
             cache: "no-store",

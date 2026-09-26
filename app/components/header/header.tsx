@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { FiPackage, FiSearch, FiShoppingBag, FiUser, FiX,
@@ -11,11 +11,23 @@ import { FiPackage, FiSearch, FiShoppingBag, FiUser, FiX,
     FiLogOut,
     FiChevronDown,
     FiChevronRight,
+    FiTruck,
+    FiHeadphones,
+    FiCreditCard,
+    FiRefreshCw,
+    FiClock,
+    FiStar,
+    FiGift,
+    FiShield,
+    FiTag,
 } from "react-icons/fi"
+import type { IconType } from "react-icons"
 import { useCarrinho } from "@/app/cart/cart-context"
 import { useLoja, useTexto } from "@/app/loja/loja-context"
+import type { FaixaDoTopo, PecaDaMoldura } from "@/app/loja/loja-context"
 import { useConta } from "@/app/conta/conta-context"
 import { caminhoDaLoja } from "@/lib/caminhos"
+import { linkSeguro } from "@/lib/link"
 import MenuMobile from "./menu-mobile"
 import Filiais from "./filiais"
 import { sairDaConta } from "./sair"
@@ -163,102 +175,52 @@ export default function Header({
         </>
     )
 
-    return (
+    /* ------------------------------------------------------------------
+       A MOLDURA
 
-        <header
-            className={`sticky top-0 z-30 transition-shadow duration-200 ${
-                rolado ? "shadow-[0_6px_20px_rgba(0,0,0,0.13)]" : ""
-            }`}
-        >
+       As faixas do topo, as peças de cada uma e a ordem delas vêm do
+       editor do painel (ver services/paginas/moldura.go). O que chega aqui
+       é dado — "sacola", "busca grande", "selo com ícone de cadeado" —,
+       nunca marcação: quem desenha cada peça continua sendo este arquivo,
+       revisado uma vez.
 
-            {/* FAIXA DE CONFIANÇA
-                Fina, discreta e — o que importa — verdadeira. É o primeiro
-                lugar onde o visitante decide se está numa loja ou numa página
-                improvisada, e por isso não leva promessa que a loja não fez:
-                nada de frete grátis ou prazo de troca inventado. Só o que este
-                sistema de fato garante, mais o CNPJ de quem vende.
+       Sem moldura na resposta, cai no padrão escrito logo abaixo. Isso só
+       acontece com um servidor mais velho que esta vitrine, no meio de um
+       deploy — e nesse minuto a loja aparece com o topo de sempre em vez
+       de aparecer sem topo nenhum.
+       ------------------------------------------------------------------ */
+    const faixas = loja.moldura?.cabecalho?.faixas?.length
+        ? loja.moldura.cabecalho.faixas
+        : FAIXAS_DE_FABRICA
 
-                Some no celular: numa tela estreita ela roubaria a linha do
-                logo e da busca, que são o que a pessoa veio usar. */}
-            <div className="hidden border-b border-[color-mix(in_srgb,var(--sobre-destaque)_18%,transparent)] bg-[var(--destaque)] sm:block">
-                {/* As garantias andam JUNTAS à esquerda, com um fio entre
-                    elas, e o CNPJ vai para a direita. Espalhadas por 1300px de
-                    barra elas pareciam três frases soltas caídas no topo — a
-                    proximidade é o que as faz ler como uma lista de garantias
-                    da loja. */}
-                <div className="largura flex items-center justify-between gap-6 py-1.5 text-[0.72rem] tracking-[0.01em] text-[color-mix(in_srgb,var(--sobre-destaque)_82%,transparent)]">
+    /** Em que telas a peça existe. É o que substitui posicionamento livre. */
+    function aparicaoDa(peca: PecaDaMoldura): string {
 
-                    <div className="flex items-center gap-3 lg:gap-4">
+        if (peca.aparicao === "so-desktop") return "hidden md:flex"
+        if (peca.aparicao === "so-celular") return "flex md:hidden"
 
-                        <span className="flex items-center gap-1.5 whitespace-nowrap">
-                            <FiLock className="w-3 shrink-0" aria-hidden />
-                            Compra segura
-                        </span>
+        return "flex"
+    }
 
-                        <Fio />
+    /* Uma peça do topo, desenhada pelo tipo dela.
 
-                        <span className="hidden items-center gap-1.5 whitespace-nowrap md:flex">
-                            <FiPackage className="w-3 shrink-0" aria-hidden />
-                            Acompanhe seu pedido pela conta
-                        </span>
+       O switch é exaustivo de propósito e termina em null: peça de um tipo
+       que esta vitrine ainda não conhece simplesmente não aparece, em vez
+       de derrubar a página. É o que permite o servidor ganhar uma peça
+       nova antes de a vitrine ser publicada. */
+    function Peca({ peca }: { peca: PecaDaMoldura }) {
 
-                        <span className="hidden md:block"><Fio /></span>
+        const aparicao = aparicaoDa(peca)
 
-                        <span className="flex items-center gap-1.5 whitespace-nowrap">
-                            <FiHome className="w-3 shrink-0" aria-hidden />
-                            Mesmo estoque da loja física
-                        </span>
+        switch (peca.tipo) {
 
-                        {/* A troca de unidade fica na faixa de serviço, junto
-                            das garantias da loja, e não perto da sacola: é uma
-                            decisão que se toma ao CHEGAR, antes de escolher o
-                            que comprar. Some sozinha na rede de uma loja só. */}
-                        <span className="hidden md:block"><Fio /></span>
-
-                        <span className="hidden md:block"><Filiais /></span>
-
-                    </div>
-
-                    {loja.cnpj ? (
-                        <span className="num hidden whitespace-nowrap opacity-80 lg:inline">
-                            CNPJ {loja.cnpj}
-                        </span>
-                    ) : null}
-
-                </div>
-            </div>
-
-            {/* BARRA DA MARCA */}
-
-            <div className="bg-[var(--destaque)]">
-
-                {/* No celular vira duas linhas: marca e ícones em cima, busca
-                    ocupando a largura inteira embaixo. É o arranjo que dá ao
-                    campo de busca o tamanho que ele precisa ter numa tela de
-                    360px sem espremer a marca nem os atalhos. */}
-                <div className="largura flex flex-wrap items-center gap-x-3 gap-y-2.5 py-2.5 sm:gap-x-6 sm:gap-y-3 sm:py-3.5">
-
-                    {/* O botão de três traços. Só no celular: da largura média
-                        para cima os atalhos cabem escritos na própria barra, e
-                        esconder atrás de um botão o que já está visível é
-                        trabalho a mais para quem navega. */}
-                    <button
-                        type="button"
-                        onClick={() => { setMenuAberto(false); setGavetaAberta(true) }}
-                        aria-label="Abrir menu"
-                        aria-expanded={gavetaAberta}
-                        aria-controls="menu-mobile"
-                        className="-ml-2 shrink-0 p-2 text-[var(--sobre-destaque)] transition-opacity hover:opacity-80 md:hidden"
-                    >
-                        <FiMenu className="w-[1.4rem]" aria-hidden />
-                    </button>
-
+            case "marca":
+                return (
                     <Link
                         href={inicio}
                         aria-label={`${loja.nome} — página inicial`}
-                        className="flex min-w-0 shrink items-center gap-2 transition-opacity hover:opacity-90 sm:shrink-0 sm:gap-2.5"
+                        className={`${aparicao} min-w-0 shrink items-center gap-2 transition-opacity hover:opacity-90 sm:shrink-0 sm:gap-2.5`}
                     >
-
                         {/* Com logo, a marca é a imagem e mais nada: repetir o
                             nome escrito ao lado dela é o erro clássico de
                             cabeçalho de loja. O nome continua na página pelo
@@ -268,7 +230,9 @@ export default function Header({
                             <img
                                 src={logo}
                                 alt={loja.nome}
-                                className="h-8 w-auto max-w-[9rem] object-contain sm:h-10 sm:max-w-[12rem]"
+                                className={peca.tamanho === "grande"
+                                    ? "h-10 w-auto max-w-[12rem] object-contain sm:h-14 sm:max-w-[16rem]"
+                                    : "h-8 w-auto max-w-[9rem] object-contain sm:h-10 sm:max-w-[12rem]"}
                             />
                         ) : (
                             <>
@@ -287,256 +251,434 @@ export default function Header({
                             </>
                         )}
                     </Link>
+                )
 
-                    {buscaControlada ? (
-                        <div className="relative order-3 w-full min-w-0 flex-1 md:order-none md:w-auto md:max-w-[36rem]">
-                            {campoBusca}
-                        </div>
-                    ) : (
-                        <form
-                            action={inicio}
-                            className="relative order-3 w-full min-w-0 flex-1 md:order-none md:w-auto md:max-w-[36rem]"
+            case "busca": {
+
+                /* A busca é o único elemento que MUDA de lugar entre o
+                   celular e o desktop: lá ela desce para uma linha própria
+                   (order-3, largura inteira), aqui ela fica entre a marca e
+                   os atalhos. Por isso ela carrega as próprias classes de
+                   layout em vez de herdá-las da área — a área do centro é
+                   `contents`, e some da conta do flex. */
+                const larguraDaBusca = peca.tamanho === "grande" ? "md:max-w-[36rem]" : "md:max-w-[22rem]"
+
+                return buscaControlada ? (
+                    <div className={`relative order-3 w-full min-w-0 flex-1 md:order-none md:w-auto ${larguraDaBusca}`}>
+                        {campoBusca}
+                    </div>
+                ) : (
+                    <form
+                        action={inicio}
+                        className={`relative order-3 w-full min-w-0 flex-1 md:order-none md:w-auto ${larguraDaBusca}`}
+                    >
+                        {campoBusca}
+                    </form>
+                )
+            }
+
+            case "pedidos":
+                return (
+                    <span className={aparicao}>
+                        <AcaoTopo
+                            href={caminhoDaLoja(loja.slug, "acompanhar")}
+                            icone={<FiPackage className="w-[1.3rem]" aria-hidden />}
+                            acima="Acompanhe"
+                            abaixo="Meus pedidos"
+                        />
+                    </span>
+                )
+
+            case "conta":
+                /* A conta é desta loja. Visitante lê o convite inteiro
+                   ("entre ou cadastre-se"), que é o que faz alguém criar
+                   conta; quem já tem lê o próprio nome e um caminho para a
+                   área dele. */
+                return conta ? (
+                    <div className={`${aparicao} items-center gap-1 md:gap-1.5`}>
+                        <Link
+                            href={caminhoDaLoja(loja.slug, "conta")}
+                            className="flex items-center gap-2.5 rounded-[var(--radius-md)] p-2 text-[var(--sobre-destaque)] transition-opacity hover:opacity-80 md:px-1 md:py-0"
                         >
-                            {campoBusca}
-                        </form>
-                    )}
+                            <FiUser className="w-[1.3rem] shrink-0" aria-hidden />
 
-                    <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0 md:gap-4 lg:gap-5">
-
-                        {/* Pedidos, conta e sair só existem escritos, e escritos
-                            eles não cabem numa tela estreita. No celular quem
-                            responde por eles é a gaveta; aqui na barra fica só a
-                            sacola, que é o atalho que se usa no meio da compra. */}
-                        <div className="hidden items-center gap-4 md:flex lg:gap-5">
-
-                            <AcaoTopo
-                                href={caminhoDaLoja(loja.slug, "acompanhar")}
-                                icone={<FiPackage className="w-[1.3rem]" aria-hidden />}
-                                acima="Acompanhe"
-                                abaixo="Meus pedidos"
-                            />
-
-                            <Divisor />
-
-                            {/* A conta é desta loja. Visitante lê o convite inteiro
-                                ("entre ou cadastre-se"), que é o que faz alguém
-                                criar conta; quem já tem lê o próprio nome e um
-                                caminho para a área dele. */}
-                            {conta ? (
-                                <div className="flex items-center gap-1 md:gap-1.5">
-                                    <Link
-                                        href={caminhoDaLoja(loja.slug, "conta")}
-                                        className="flex items-center gap-2.5 rounded-[var(--radius-md)] p-2 text-[var(--sobre-destaque)] transition-opacity hover:opacity-80 md:px-1 md:py-0"
-                                    >
-                                        <FiUser className="w-[1.3rem] shrink-0" aria-hidden />
-
-                                        <span className="hidden leading-tight md:block">
-                                            <span className="block max-w-[10rem] truncate text-[0.7rem] opacity-75">
-                                                Olá, {conta.nome.split(" ")[0]}
-                                            </span>
-                                            <span className="block text-[0.82rem] font-semibold">
-                                                {t("topo.conta", "Minha conta")}
-                                            </span>
-                                        </span>
-                                    </Link>
-
-                                    {/* Sair virou ícone. Escrito e sublinhado ao
-                                        lado de "Minha conta", ele competia em
-                                        peso com o próprio nome da pessoa — e
-                                        sair é a ação que menos se usa da barra
-                                        inteira. */}
-                                    <button
-                                        type="button"
-                                        onClick={sair}
-                                        aria-label="Sair da conta"
-                                        title="Sair"
-                                        className="hidden rounded-[var(--radius-md)] p-2 text-[var(--sobre-destaque)] opacity-70 transition-opacity hover:opacity-100 md:block"
-                                    >
-                                        <FiLogOut className="w-[1.05rem]" aria-hidden />
-                                    </button>
-                                </div>
-                            ) : (
-                                <AcaoTopo
-                                    href={caminhoDaLoja(loja.slug, "conta")}
-                                    icone={<FiUser className="w-[1.3rem]" aria-hidden />}
-                                    acima="Entre ou"
-                                    abaixo="cadastre-se"
-                                />
-                            )}
-
-                        </div>
-
-                        {/* A sacola ganhou fundo próprio: é a ação que a
-                            pessoa procura no meio da compra, e mais um ícone
-                            branco em cima de azul, ao lado de outros dois, não
-                            se acha de relance. */}
-                        <button
-                            type="button"
-                            onClick={abrir}
-                            aria-label="Abrir carrinho"
-                            className="flex items-center gap-2.5 rounded-[var(--radius-md)] p-2 text-[var(--sobre-destaque)] transition-colors hover:bg-[color-mix(in_srgb,var(--sobre-destaque)_16%,transparent)] md:bg-[color-mix(in_srgb,var(--sobre-destaque)_12%,transparent)] md:px-3 md:py-2"
-                        >
-                            {/* O contador precisa de folga à direita: colado
-                                no ícone ele encostava na palavra "Sacola" e os
-                                três viravam um borrão. mr-1.5 reserva o espaço
-                                que ele ocupa quando aparece. */}
-                            <span className={`relative shrink-0 ${totalItens > 0 ? "mr-1.5" : ""}`}>
-                                <FiShoppingBag className="w-[1.3rem]" aria-hidden />
-
-                                {totalItens > 0 ? (
-                                    <span className="num absolute -right-2.5 -top-2 flex h-[1.15rem] min-w-[1.15rem] items-center justify-center rounded-full border border-[var(--destaque)] bg-[var(--coral)] px-1 text-[0.62rem] font-bold text-white">
-                                        {totalItens > 99 ? "99+" : totalItens}
-                                    </span>
-                                ) : null}
-                            </span>
-
-                            <span className="hidden text-left leading-tight md:block">
-                                <span className="num block text-[0.7rem] opacity-75">
-                                    {totalItens} {totalItens === 1 ? "item" : "itens"}
+                            <span className="hidden leading-tight md:block">
+                                <span className="block max-w-[10rem] truncate text-[0.7rem] opacity-75">
+                                    Olá, {conta.nome.split(" ")[0]}
                                 </span>
                                 <span className="block text-[0.82rem] font-semibold">
-                                    Sacola
+                                    {t("topo.conta", "Minha conta")}
                                 </span>
                             </span>
-                        </button>
+                        </Link>
 
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            {/* RÉGUA DE DEPARTAMENTOS */}
-
-            <nav
-                aria-label="Categorias"
-                className="relative border-b border-[var(--linha)] bg-[var(--fundo)] shadow-[var(--sombra-1)]"
-            >
-
-                <div className="largura flex items-stretch gap-1 sm:gap-3">
-
-                    {/* O botão de departamentos.
-                        Uma régua de categorias resolve enquanto são quatro;
-                        com dez ela vira uma tira que rola para o lado, e o que
-                        está no fim ninguém acha. O botão fixo dá um lugar só
-                        onde está TUDO — que é o papel dele nas lojas grandes. */}
-                    {/* Some no celular: lá a lista inteira de departamentos
-                        vive na gaveta, e dois botões abrindo a mesma lista é
-                        uma escolha a mais para quem tem menos tela. */}
-                    {categorias && categorias.length > 0 && aoEscolherCategoria ? (
-                        <div className="relative hidden shrink-0 sm:block">
-                            <button
-                                type="button"
-                                onClick={() => setMenuAberto((aberto) => !aberto)}
-                                aria-expanded={menuAberto}
-                                aria-controls="painel-departamentos"
-                                /* O rótulo escrito some no celular por falta de
-                                   largura, mas o botão não pode ficar mudo para
-                                   quem usa leitor de tela — daí o aria-label. */
-                                aria-label={t("topo.departamentos", "Departamentos")}
-                                className="flex h-full items-center gap-2 bg-[var(--destaque)] px-3.5 text-[0.85rem] font-bold tracking-[0.01em] text-[var(--sobre-destaque)] transition-opacity hover:opacity-90 sm:px-5"
-                            >
-                                <FiGrid className="w-[1.05rem] shrink-0" aria-hidden />
-
-                                <span className="hidden sm:inline">{t("topo.departamentos", "Departamentos")}</span>
-
-                                <FiChevronDown
-                                    className={`w-4 shrink-0 transition-transform duration-200 ${
-                                        menuAberto ? "rotate-180" : ""
-                                    }`}
-                                    aria-hidden
-                                />
-                            </button>
-                        </div>
-                    ) : null}
-
-                    <div className="trilho flex flex-1 items-stretch gap-0.5 sm:gap-1">
-
-                    {categorias && aoEscolherCategoria ? (
-                        <>
-                            <ItemNav
-                                rotulo="Todos"
-                                ativo={categoriaAtiva === null}
-                                aoClicar={() => aoEscolherCategoria(null)}
-                            />
-
-                            {categorias.map((categoria) => (
-                                <ItemNav
-                                    key={categoria}
-                                    rotulo={categoria}
-                                    ativo={categoriaAtiva === categoria}
-                                    aoClicar={() => aoEscolherCategoria(categoria)}
-                                />
-                            ))}
-                        </>
-                    ) : (
-                        <>
-                            <Link
-                                href={inicio}
-                                className="flex shrink-0 items-center border-b-2 border-transparent px-3 py-3 text-[0.85rem] font-semibold text-[var(--ink-2)] transition-colors hover:bg-[var(--placa)] hover:text-[var(--destaque)] sm:py-2.5 sm:text-[0.88rem]"
-                            >
-                                Todos os produtos
-                            </Link>
-
-                            <Link
-                                href={caminhoDaLoja(loja.slug, "acompanhar")}
-                                className="flex shrink-0 items-center border-b-2 border-transparent px-3 py-3 text-[0.85rem] font-semibold text-[var(--ink-2)] transition-colors hover:bg-[var(--placa)] hover:text-[var(--destaque)] sm:py-2.5 sm:text-[0.88rem]"
-                            >
-                                Acompanhar pedido
-                            </Link>
-                        </>
-                    )}
-
-                    </div>
-
-                </div>
-
-                {/* O painel. Some ao escolher, ao clicar fora e no Esc — as
-                    três saídas que a pessoa tenta, nessa ordem. */}
-                {menuAberto && categorias && aoEscolherCategoria ? (
-                    <>
+                        {/* Sair virou ícone. Escrito e sublinhado ao lado de
+                            "Minha conta", ele competia em peso com o próprio
+                            nome da pessoa — e sair é a ação que menos se usa
+                            da barra inteira. */}
                         <button
                             type="button"
-                            aria-label="Fechar departamentos"
-                            onClick={() => setMenuAberto(false)}
-                            className="fixed inset-0 z-10 cursor-default bg-black/20"
-                        />
-
-                        <div
-                            id="painel-departamentos"
-                            /* Uma loja com trinta categorias faria o painel
-                                passar do fim da tela do celular, e o que
-                                sobrasse ficaria inalcançável — o teto de altura
-                                com rolagem própria é o que garante que dá para
-                                chegar na última. */
-                            className="absolute inset-x-0 top-full z-20 max-h-[70vh] overflow-y-auto overscroll-contain border-b border-[var(--linha)] bg-[var(--fundo)] shadow-lg"
+                            onClick={sair}
+                            aria-label="Sair da conta"
+                            title="Sair"
+                            className="hidden rounded-[var(--radius-md)] p-2 text-[var(--sobre-destaque)] opacity-70 transition-opacity hover:opacity-100 md:block"
                         >
-                            <div className="largura py-4 sm:py-5">
-                                <p className="rotulo mb-3 text-[var(--ink-2)]">{t("topo.todos_departamentos", "Todos os departamentos")}</p>
+                            <FiLogOut className="w-[1.05rem]" aria-hidden />
+                        </button>
+                    </div>
+                ) : (
+                    <span className={aparicao}>
+                        <AcaoTopo
+                            href={caminhoDaLoja(loja.slug, "conta")}
+                            icone={<FiUser className="w-[1.3rem]" aria-hidden />}
+                            acima="Entre ou"
+                            abaixo="cadastre-se"
+                        />
+                    </span>
+                )
 
-                                <div className="grid grid-cols-1 gap-x-6 gap-y-0 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-                                    <ItemPainel
-                                        rotulo="Ver tudo"
-                                        ativo={categoriaAtiva === null}
-                                        aoClicar={() => { aoEscolherCategoria(null); setMenuAberto(false) }}
-                                    />
+            case "sacola":
+                /* A sacola ganhou fundo próprio: é a ação que a pessoa
+                   procura no meio da compra, e mais um ícone branco em cima
+                   de azul, ao lado de outros dois, não se acha de relance. */
+                return (
+                    <button
+                        type="button"
+                        onClick={abrir}
+                        aria-label="Abrir carrinho"
+                        className={`${aparicao} items-center gap-2.5 rounded-[var(--radius-md)] p-2 text-[var(--sobre-destaque)] transition-colors hover:bg-[color-mix(in_srgb,var(--sobre-destaque)_16%,transparent)] md:bg-[color-mix(in_srgb,var(--sobre-destaque)_12%,transparent)] md:px-3 md:py-2`}
+                    >
+                        {/* O contador precisa de folga à direita: colado no
+                            ícone ele encostava na palavra "Sacola" e os três
+                            viravam um borrão. */}
+                        <span className={`relative shrink-0 ${totalItens > 0 ? "mr-1.5" : ""}`}>
+                            <FiShoppingBag className="w-[1.3rem]" aria-hidden />
 
-                                    {categorias.map((categoria) => (
-                                        <ItemPainel
-                                            key={categoria}
-                                            rotulo={categoria}
-                                            ativo={categoriaAtiva === categoria}
-                                            aoClicar={() => { aoEscolherCategoria(categoria); setMenuAberto(false) }}
-                                        />
-                                    ))}
-                                </div>
+                            {totalItens > 0 ? (
+                                <span className="num absolute -right-2.5 -top-2 flex h-[1.15rem] min-w-[1.15rem] items-center justify-center rounded-full border border-[var(--destaque)] bg-[var(--coral)] px-1 text-[0.62rem] font-bold text-white">
+                                    {totalItens > 99 ? "99+" : totalItens}
+                                </span>
+                            ) : null}
+                        </span>
+
+                        <span className="hidden text-left leading-tight md:block">
+                            <span className="num block text-[0.7rem] opacity-75">
+                                {totalItens} {totalItens === 1 ? "item" : "itens"}
+                            </span>
+                            <span className="block text-[0.82rem] font-semibold">
+                                Sacola
+                            </span>
+                        </span>
+                    </button>
+                )
+
+            case "selo":
+                return (
+                    <span className={`${aparicao} items-center gap-1.5 whitespace-nowrap`}>
+                        <IconeDaPeca chave={peca.icone} />
+                        {peca.texto}
+                    </span>
+                )
+
+            case "texto":
+                return <span className={`${aparicao} items-center whitespace-nowrap`}>{peca.texto}</span>
+
+            case "link": {
+                // O endereço vem do editor de moldura do painel e termina num
+                // `href`: passa por linkSeguro, senão "javascript:..." aqui
+                // executaria no clique de quem está comprando. Sem endereço
+                // utilizável a peça não é desenhada.
+                const destino = linkSeguro(peca.link)
+
+                return destino ? (
+                    <Link
+                        href={destino}
+                        className={`${aparicao} items-center gap-1.5 whitespace-nowrap transition-opacity hover:opacity-80`}
+                    >
+                        <IconeDaPeca chave={peca.icone} />
+                        {peca.texto || destino}
+                    </Link>
+                ) : null
+            }
+
+            case "cnpj":
+                return loja.cnpj ? (
+                    <span className={`num ${aparicao} whitespace-nowrap opacity-80`}>
+                        CNPJ {loja.cnpj}
+                    </span>
+                ) : null
+
+            case "filiais":
+                return <span className={aparicao}><Filiais /></span>
+
+            case "departamentos":
+                /* Uma régua de categorias resolve enquanto são quatro; com
+                   dez ela vira uma tira que rola para o lado, e o que está no
+                   fim ninguém acha. O botão fixo dá um lugar só onde está
+                   TUDO — que é o papel dele nas lojas grandes.
+
+                   Some no celular: lá a lista inteira vive na gaveta, e dois
+                   botões abrindo a mesma lista é uma escolha a mais para quem
+                   tem menos tela. */
+                return categorias && categorias.length > 0 && aoEscolherCategoria ? (
+                    <div className="relative hidden shrink-0 sm:block">
+                        <button
+                            type="button"
+                            onClick={() => setMenuAberto((aberto) => !aberto)}
+                            aria-expanded={menuAberto}
+                            aria-controls="painel-departamentos"
+                            /* O rótulo escrito some no celular por falta de
+                               largura, mas o botão não pode ficar mudo para
+                               quem usa leitor de tela — daí o aria-label. */
+                            aria-label={t("topo.departamentos", "Departamentos")}
+                            className="flex h-full items-center gap-2 bg-[var(--destaque)] px-3.5 text-[0.85rem] font-bold tracking-[0.01em] text-[var(--sobre-destaque)] transition-opacity hover:opacity-90 sm:px-5"
+                        >
+                            <FiGrid className="w-[1.05rem] shrink-0" aria-hidden />
+
+                            <span className="hidden sm:inline">{t("topo.departamentos", "Departamentos")}</span>
+
+                            <FiChevronDown
+                                className={`w-4 shrink-0 transition-transform duration-200 ${
+                                    menuAberto ? "rotate-180" : ""
+                                }`}
+                                aria-hidden
+                            />
+                        </button>
+                    </div>
+                ) : null
+
+            default:
+                return null
+        }
+    }
+
+    /* Uma área de uma faixa: esquerda, centro ou direita.
+
+       O fio entre as peças é da faixa de serviço e só dela: ali as garantias
+       andam JUNTAS e o fio é o que as faz ler como uma lista, em vez de três
+       frases soltas caídas no topo. */
+    function Area({ pecas, comFio, comDivisor, className }: {
+        pecas?: PecaDaMoldura[]
+        comFio?: boolean
+
+        /* O fio alto da barra da marca, entre dois atalhos escritos.
+           Não entra antes da sacola: ela tem fundo próprio, e um fio colado
+           num bloco com fundo lê como falha de desenho, não como separação. */
+        comDivisor?: boolean
+
+        className: string
+    }) {
+
+        if (!pecas || pecas.length === 0) return null
+
+        return (
+            <div className={className}>
+                {pecas.map((peca, i) => (
+                    <Fragment key={peca.id || `${peca.tipo}-${i}`}>
+                        {comFio && i > 0 ? <Fio /> : null}
+
+                        {comDivisor && i > 0 && ESCRITAS.has(peca.tipo) && ESCRITAS.has(pecas[i - 1].tipo)
+                            ? <Divisor />
+                            : null}
+
+                        <Peca peca={peca} />
+                    </Fragment>
+                ))}
+            </div>
+        )
+    }
+
+    return (
+
+        <header
+            className={`sticky top-0 z-30 transition-shadow duration-200 ${
+                rolado ? "shadow-[0_6px_20px_rgba(0,0,0,0.13)]" : ""
+            }`}
+        >
+
+            {faixas.map((faixa) => {
+
+                if (!faixa.ligada) return null
+
+                /* FAIXA DE SERVIÇO
+                   Fina, discreta e — o que importa — verdadeira. É o primeiro
+                   lugar onde o visitante decide se está numa loja ou numa
+                   página improvisada.
+
+                   Some no celular: numa tela estreita ela roubaria a linha do
+                   logo e da busca, que são o que a pessoa veio usar. */
+                if (faixa.tipo === "servico") {
+                    return (
+                        <div
+                            key={faixa.id}
+                            className={`hidden border-b border-[color-mix(in_srgb,var(--sobre-destaque)_18%,transparent)] sm:block ${fundoDaFaixa(faixa.fundo)}`}
+                        >
+                            <div className="largura flex items-center justify-between gap-6 py-1.5 text-[0.72rem] tracking-[0.01em] text-[color-mix(in_srgb,var(--sobre-destaque)_82%,transparent)]">
+
+                                <Area
+                                    pecas={faixa.esquerda}
+                                    comFio
+                                    className="flex items-center gap-3 lg:gap-4"
+                                />
+
+                                <Area pecas={faixa.centro} comFio className="flex items-center gap-3" />
+                                <Area pecas={faixa.direita} comFio className="flex items-center gap-3" />
+
                             </div>
                         </div>
-                    </>
-                ) : null}
+                    )
+                }
 
-            </nav>
+                /* BARRA DA MARCA
+                   No celular vira duas linhas: marca e ícones em cima, busca
+                   ocupando a largura inteira embaixo. É o arranjo que dá ao
+                   campo de busca o tamanho que ele precisa ter numa tela de
+                   360px sem espremer a marca nem os atalhos. */
+                if (faixa.tipo === "marca") {
+                    return (
+                        <div key={faixa.id} className={fundoDaFaixa(faixa.fundo)}>
+                            <div className="largura flex flex-wrap items-center gap-x-3 gap-y-2.5 py-2.5 sm:gap-x-6 sm:gap-y-3 sm:py-3.5">
+
+                                {/* O botão de três traços fica fora da moldura:
+                                    ele não é decoração do topo, é a única
+                                    entrada do menu no celular. Deixá-lo
+                                    arrastável seria deixar o lojista trancar a
+                                    navegação da própria loja sem perceber. */}
+                                <button
+                                    type="button"
+                                    onClick={() => { setMenuAberto(false); setGavetaAberta(true) }}
+                                    aria-label="Abrir menu"
+                                    aria-expanded={gavetaAberta}
+                                    aria-controls="menu-mobile"
+                                    className="-ml-2 shrink-0 p-2 text-[var(--sobre-destaque)] transition-opacity hover:opacity-80 md:hidden"
+                                >
+                                    <FiMenu className="w-[1.4rem]" aria-hidden />
+                                </button>
+
+                                <Area pecas={faixa.esquerda} className="flex min-w-0 shrink items-center gap-3 sm:shrink-0" />
+
+                                {/* `contents` em vez de uma caixa: assim as peças
+                                    do centro continuam sendo filhas diretas da
+                                    barra, e o `flex-1` da busca cresce contra a
+                                    barra inteira — dentro de uma caixa ele
+                                    cresceria contra a caixa, e os atalhos da
+                                    direita seriam empurrados para o fim da
+                                    linha. */}
+                                <Area pecas={faixa.centro} className="contents" />
+
+                                <Area
+                                    pecas={faixa.direita}
+                                    comDivisor
+                                    className="ml-auto flex shrink-0 items-center gap-1 md:ml-0 md:gap-4 lg:gap-5"
+                                />
+
+                            </div>
+                        </div>
+                    )
+                }
+
+                /* RÉGUA DE DEPARTAMENTOS */
+                return (
+                    <nav
+                        key={faixa.id}
+                        aria-label="Categorias"
+                        className="relative border-b border-[var(--linha)] bg-[var(--fundo)] shadow-[var(--sombra-1)]"
+                    >
+
+                        <div className="largura flex items-stretch gap-1 sm:gap-3">
+
+                            <Area pecas={faixa.esquerda} className="flex items-stretch gap-1 sm:gap-3" />
+
+                            <div className="trilho flex flex-1 items-stretch gap-0.5 sm:gap-1">
+
+                                {categorias && aoEscolherCategoria ? (
+                                    <>
+                                        <ItemNav
+                                            rotulo="Todos"
+                                            ativo={categoriaAtiva === null}
+                                            aoClicar={() => aoEscolherCategoria(null)}
+                                        />
+
+                                        {categorias.map((categoria) => (
+                                            <ItemNav
+                                                key={categoria}
+                                                rotulo={categoria}
+                                                ativo={categoriaAtiva === categoria}
+                                                aoClicar={() => aoEscolherCategoria(categoria)}
+                                            />
+                                        ))}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Link
+                                            href={inicio}
+                                            className="flex shrink-0 items-center border-b-2 border-transparent px-3 py-3 text-[0.85rem] font-semibold text-[var(--ink-2)] transition-colors hover:bg-[var(--placa)] hover:text-[var(--destaque)] sm:py-2.5 sm:text-[0.88rem]"
+                                        >
+                                            Todos os produtos
+                                        </Link>
+
+                                        <Link
+                                            href={caminhoDaLoja(loja.slug, "acompanhar")}
+                                            className="flex shrink-0 items-center border-b-2 border-transparent px-3 py-3 text-[0.85rem] font-semibold text-[var(--ink-2)] transition-colors hover:bg-[var(--placa)] hover:text-[var(--destaque)] sm:py-2.5 sm:text-[0.88rem]"
+                                        >
+                                            Acompanhar pedido
+                                        </Link>
+                                    </>
+                                )}
+
+                            </div>
+
+                            <Area pecas={faixa.direita} className="flex items-center gap-3" />
+
+                        </div>
+
+                        {/* O painel. Some ao escolher, ao clicar fora e no Esc —
+                            as três saídas que a pessoa tenta, nessa ordem. */}
+                        {menuAberto && categorias && aoEscolherCategoria ? (
+                            <>
+                                <button
+                                    type="button"
+                                    aria-label="Fechar departamentos"
+                                    onClick={() => setMenuAberto(false)}
+                                    className="fixed inset-0 z-10 cursor-default bg-black/20"
+                                />
+
+                                <div
+                                    id="painel-departamentos"
+                                    /* Uma loja com trinta categorias faria o
+                                        painel passar do fim da tela do celular, e
+                                        o que sobrasse ficaria inalcançável — o
+                                        teto de altura com rolagem própria é o que
+                                        garante que dá para chegar na última. */
+                                    className="absolute inset-x-0 top-full z-20 max-h-[70vh] overflow-y-auto overscroll-contain border-b border-[var(--linha)] bg-[var(--fundo)] shadow-lg"
+                                >
+                                    <div className="largura py-4 sm:py-5">
+                                        <p className="rotulo mb-3 text-[var(--ink-2)]">{t("topo.todos_departamentos", "Todos os departamentos")}</p>
+
+                                        <div className="grid grid-cols-1 gap-x-6 gap-y-0 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+                                            <ItemPainel
+                                                rotulo="Ver tudo"
+                                                ativo={categoriaAtiva === null}
+                                                aoClicar={() => { aoEscolherCategoria(null); setMenuAberto(false) }}
+                                            />
+
+                                            {categorias.map((categoria) => (
+                                                <ItemPainel
+                                                    key={categoria}
+                                                    rotulo={categoria}
+                                                    ativo={categoriaAtiva === categoria}
+                                                    aoClicar={() => { aoEscolherCategoria(categoria); setMenuAberto(false) }}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        ) : null}
+
+                    </nav>
+                )
+            })}
 
             <MenuMobile
                 aberto={gavetaAberta}
@@ -550,6 +692,89 @@ export default function Header({
 
     )
 }
+
+/** As peças da barra da marca que são atalho escrito, e por isso levam fio. */
+const ESCRITAS = new Set(["pedidos", "conta", "link", "texto"])
+
+/**
+ * O fundo de uma faixa, na opção que o lojista escolheu.
+ *
+ * Lista fechada e traduzida aqui, e não uma classe vinda do painel: cor
+ * arbitrária chegando do editor seria CSS de terceiro dentro da página do
+ * comprador, que é o que o modelo de peças existe para impedir.
+ */
+function fundoDaFaixa(fundo?: string): string {
+
+    if (fundo === "claro") return "bg-[var(--fundo)] text-[var(--ink)]"
+    if (fundo === "escuro") return "bg-[var(--ink)] text-[var(--fundo)]"
+
+    return "bg-[var(--destaque)]"
+}
+
+/**
+ * O ícone de uma peça, pela CHAVE que o painel mandou.
+ *
+ * Chave desconhecida não desenha nada, em vez de quebrar a linha: a peça
+ * continua legível pelo texto dela.
+ */
+function IconeDaPeca({ chave }: { chave?: string }) {
+
+    const Desenho = ICONES_DA_PECA[chave ?? ""]
+
+    if (!Desenho) return null
+
+    return <Desenho className="w-3 shrink-0" aria-hidden />
+}
+
+const ICONES_DA_PECA: Record<string, IconType> = {
+    cadeado: FiLock,
+    caixa: FiPackage,
+    mapa: FiHome,
+    caminhao: FiTruck,
+    fone: FiHeadphones,
+    cartao: FiCreditCard,
+    troca: FiRefreshCw,
+    relogio: FiClock,
+    estrela: FiStar,
+    presente: FiGift,
+    escudo: FiShield,
+    etiqueta: FiTag,
+}
+
+/**
+ * O topo de fábrica, igual ao que o servidor manda quando a loja nunca mexeu
+ * nele (ver CabecalhoPadrao em services/paginas/moldura.go).
+ *
+ * A cópia existe para um caso só: servidor mais velho que esta vitrine, no
+ * meio de um deploy. Nesse minuto a loja aparece com o topo de sempre, em vez
+ * de aparecer sem topo nenhum.
+ */
+const FAIXAS_DE_FABRICA: FaixaDoTopo[] = [
+    {
+        id: "servico", tipo: "servico", ligada: true, fundo: "destaque",
+        esquerda: [
+            { id: "selo-seguro", tipo: "selo", icone: "cadeado", texto: "Compra segura" },
+            { id: "selo-pedido", tipo: "selo", icone: "caixa", texto: "Acompanhe seu pedido pela conta", aparicao: "so-desktop" },
+            { id: "selo-estoque", tipo: "selo", icone: "mapa", texto: "Mesmo estoque da loja física" },
+            { id: "filiais", tipo: "filiais", aparicao: "so-desktop" },
+        ],
+        direita: [{ id: "cnpj", tipo: "cnpj" }],
+    },
+    {
+        id: "marca", tipo: "marca", ligada: true, fundo: "destaque",
+        esquerda: [{ id: "marca", tipo: "marca", tamanho: "normal" }],
+        centro: [{ id: "busca", tipo: "busca", tamanho: "grande" }],
+        direita: [
+            { id: "pedidos", tipo: "pedidos", aparicao: "so-desktop" },
+            { id: "conta", tipo: "conta", aparicao: "so-desktop" },
+            { id: "sacola", tipo: "sacola" },
+        ],
+    },
+    {
+        id: "navegacao", tipo: "navegacao", ligada: true, fundo: "claro",
+        esquerda: [{ id: "departamentos", tipo: "departamentos" }],
+    },
+]
 
 /**
  * Um atalho do canto direito da barra: ícone e, da largura média para cima,

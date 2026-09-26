@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { Bloco } from "@/app/loja/loja-context"
+import { linkSeguro } from "@/lib/link"
 
 /**
  * Os blocos editoriais da home — os que o lojista escreve, e não os que
@@ -13,23 +14,9 @@ import type { Bloco } from "@/app/loja/loja-context"
  *
  * Os endereços de link e de imagem já vêm conferidos do servidor (ver
  * services/paginas: só caminho interno ou http(s) de verdade, nunca
- * "javascript:"). A conferência é repetida aqui mesmo assim — é barata, e
- * um dia esta função pode ser chamada de outro lugar.
+ * "javascript:"). A conferência é repetida aqui mesmo assim, por lib/link —
+ * é barata, e um dia esta função pode ser chamada de outro lugar.
  */
-
-/** Aceita só caminho interno ou http(s). Devolve vazio no resto. */
-function linkSeguro(bruto?: string): string {
-
-    const link = (bruto ?? "").trim()
-
-    if (!link) return ""
-
-    // "//outro-site.com" o navegador lê como domínio externo, não como
-    // caminho — daí a segunda condição.
-    if (link.startsWith("/") && !link.startsWith("//")) return link
-
-    return /^https?:\/\//i.test(link) ? link : ""
-}
 
 /** Um bloco de texto da loja: título e parágrafo. */
 export function BlocoTexto({ bloco }: { bloco: Bloco }) {

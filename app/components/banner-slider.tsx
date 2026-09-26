@@ -6,6 +6,7 @@ import { FiChevronLeft, FiChevronRight } from "react-icons/fi"
 import type { Banner } from "@/app/type/type"
 import { useLoja } from "@/app/loja/loja-context"
 import { caminhoDaLoja } from "@/lib/caminhos"
+import { linkSeguro } from "@/lib/link"
 
 function formatarMoeda(valor: number): string {
     return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
@@ -78,11 +79,19 @@ export default function BannerSlider() {
     // O lojista cadastra o link como caminho relativo ("/produto/108") ou
     // como endereço completo. O relativo é do site dele, então ganha o
     // prefixo da loja; o absoluto vai como está.
-    const destino = banner.link.startsWith("/")
-        ? caminhoDaLoja(loja.slug, banner.link)
-        : banner.link
+    //
+    // Passa por linkSeguro antes de qualquer coisa: o endereço vem do painel e
+    // acaba num `href`, e `href="javascript:..."` executa no clique de quem
+    // está comprando. O que não é caminho interno nem http(s) vira vazio, e
+    // aí o botão simplesmente não aparece — um banner sem botão é melhor do
+    // que um botão que faz outra coisa.
+    const link = linkSeguro(banner.link)
 
-    const botao = banner.link ? (
+    const destino = link.startsWith("/")
+        ? caminhoDaLoja(loja.slug, link)
+        : link
+
+    const botao = link ? (
         <Link href={destino} className="btn mt-4 w-full max-w-[15rem] py-3 md:w-auto md:px-10">
             aproveite
         </Link>
@@ -285,8 +294,8 @@ function Abertura() {
                 </h1>
 
                 <p className="max-w-md text-[0.9rem] leading-relaxed text-[color-mix(in_srgb,var(--sobre-destaque)_72%,transparent)]">
-                    Você compra o que existe na prateleira: cada peça anunciada está
-                    separada e reservada assim que o pedido é feito.
+                    Você compra o que existe na prateleira: cada produto anunciado é
+                    separado e reservado assim que o pedido é feito.
                 </p>
 
                 <a href="#grade" className="btn-claro btn mt-2">

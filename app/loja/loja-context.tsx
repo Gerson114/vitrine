@@ -39,6 +39,89 @@ export interface CartaoDaLoja {
     titulo?: string
     texto?: string
     link?: string
+    /** "pequeno" | "medio" | "grande" — o destaque deste cartão na faixa. */
+    tamanho?: string
+}
+
+/**
+ * Uma peça do cabeçalho ou do rodapé.
+ *
+ * Vale aqui a mesma regra do bloco da home: o que chega é DADO — "sacola",
+ * "busca grande", "selo com ícone de cadeado" —, nunca marcação. Quem desenha
+ * cada peça é o código da vitrine (ver components/header/pecas.tsx).
+ */
+export interface PecaDaMoldura {
+    id: string
+    tipo: string
+
+    texto?: string
+    link?: string
+    icone?: string
+    tamanho?: string
+
+    /** "sempre" | "so-desktop" | "so-celular". */
+    aparicao?: string
+}
+
+/** Uma faixa horizontal do topo, com as três áreas dela. */
+export interface FaixaDoTopo {
+    id: string
+
+    /** "servico" | "marca" | "navegacao" — cada uma com altura e cor próprias. */
+    tipo: string
+
+    ligada: boolean
+    fundo?: string
+
+    esquerda?: PecaDaMoldura[]
+    centro?: PecaDaMoldura[]
+    direita?: PecaDaMoldura[]
+}
+
+/** Uma coluna do rodapé. */
+export interface ColunaDoRodape {
+    id: string
+    titulo?: string
+    largura?: string
+    pecas?: PecaDaMoldura[]
+}
+
+/** O cabeçalho e o rodapé da loja. */
+export interface MolduraDaLoja {
+    cabecalho?: { faixas?: FaixaDoTopo[] }
+    rodape?: { ligado?: boolean; colunas?: ColunaDoRodape[]; barra?: PecaDaMoldura[] }
+}
+
+/**
+ * O ramo da loja e as regras que ele traz.
+ *
+ * Os campos de cozinha só existem quando `ramo` é "comida": mandar tempo de
+ * preparo de uma loja de ventilador faria o checkout dela prometer que o
+ * ventilador fica pronto em quarenta minutos.
+ */
+export interface AtendimentoDaLoja {
+    ramo: "produtos" | "comida"
+
+    /** Abaixo disto a loja não fecha pedido. Zero é "sem mínimo". */
+    pedido_minimo?: number
+
+    /**
+     * A loja aceita pagar uma parte agora e o resto na entrega.
+     *
+     * Vale para qualquer ramo, e não só para comida: quem vende bolo de
+     * casamento e quem vende móvel sob medida têm o mesmo problema — o pedido
+     * demora a sair e a loja não quer produzir sem sinal.
+     */
+    aceita_entrada?: boolean
+    percentual_da_entrada?: number
+
+    atendimento?: "na_hora" | "agendado" | "os_dois"
+    aceita_na_hora?: boolean
+    aceita_agendamento?: boolean
+
+    minutos_de_preparo?: number
+    minutos_de_antecedencia?: number
+    dias_para_agendar?: number
 }
 
 export interface Bloco {
@@ -143,6 +226,28 @@ export interface LojaAtual {
      * visitante. Ausente vale como layout padrão.
      */
     pagina?: Bloco[]
+
+    /**
+     * O cabeçalho e o rodapé, montados peça a peça no mesmo editor.
+     *
+     * Vem junto da loja pelo mesmo motivo da home, e com mais razão: a
+     * moldura está em TODAS as páginas, e pedi-la depois faria o topo de
+     * fábrica piscar antes do topo da loja a cada navegação.
+     *
+     * Ausente vale como moldura de fábrica — que é exatamente o topo de três
+     * faixas e o rodapé de quatro colunas que a vitrine sempre desenhou.
+     */
+    moldura?: MolduraDaLoja
+
+    /**
+     * Como esta loja trabalha: mercadoria pronta ou comida feita na hora, se
+     * agenda, e a partir de quanto fecha pedido.
+     *
+     * Vem junto da loja porque o checkout precisa dos três para desenhar a
+     * tela certa — descobrir só no clique do "finalizar" faria o campo de
+     * hora aparecer depois de a pessoa já ter decidido.
+     */
+    atendimento?: AtendimentoDaLoja
 
     /**
      * As palavras da loja: cada texto que a vitrine escreve sozinha, já

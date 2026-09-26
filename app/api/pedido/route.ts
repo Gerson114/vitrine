@@ -1,7 +1,8 @@
-import { API_BASE, erroDoBackend, safeParse, slugValido, tokenDaLoja } from "@/lib/conta"
+import { API_BASE, erroDoBackend, safeParse, slugValido, tokenDaLoja, tokenLimpo } from "@/lib/conta"
 import { cookies } from "next/headers"
 import { sanitizeText } from "@/security/sanitize"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 const isDev = process.env.NODE_ENV === "development"
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
         const sessao = await tokenDaLoja(loja)
 
         if (sessao) {
-            const resposta = await fetch(
+            const resposta = await chamarBackend(
                 new URL(`/public/loja/${loja}/pedidos/${codigo}`, API_BASE),
                 {
                     headers: { Accept: "application/json", Authorization: `Bearer ${sessao}` },
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
             return Response.json({ erro: "Pedido não encontrado" }, { status: 404 })
         }
 
-        const response = await fetch(new URL("/public/pedidos/consulta", API_BASE), {
+        const response = await chamarBackend(new URL("/public/pedidos/consulta", API_BASE), {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify({ loja, codigo, contato, token: tokenSalvo }),
@@ -92,8 +93,11 @@ export async function POST(request: Request) {
             return Response.json({ erro: "Resposta inválida do servidor" }, { status: 502 })
         }
 
+        // tokenLimpo pelo mesmo motivo do cookie de sessão (ver lib/conta): o
+        // valor entra num Set-Cookie concatenado à mão, e um `;` dentro dele
+        // seria lido pelo navegador como atributo do cookie.
         const novoToken = dados && typeof dados === "object" && "token" in dados
-            ? String((dados as { token: unknown }).token ?? "")
+            ? tokenLimpo((dados as { token: unknown }).token)
             : ""
 
         const saida = Response.json(

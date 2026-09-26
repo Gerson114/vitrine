@@ -1,5 +1,6 @@
 import { API_BASE, erroDoBackend, safeParse, slugValido, tokenDaLoja } from "@/lib/conta"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 /**
  * POST /api/pedido/devolucao — o comprador pedindo o dinheiro de volta.
@@ -87,7 +88,7 @@ export async function POST(request: Request) {
             return Response.json({ erro: "Entre na sua conta para pedir a devolução" }, { status: 401 })
         }
 
-        const resposta = await fetch(
+        const resposta = await chamarBackend(
             new URL(`/public/loja/${loja}/pedidos/${codigo}/devolucao`, API_BASE),
             {
                 method: "POST",

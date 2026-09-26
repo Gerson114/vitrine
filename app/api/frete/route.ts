@@ -1,5 +1,6 @@
 import { API_BASE, erroDoBackend, safeParse, slugValido } from "@/lib/conta"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 /**
  * Quanto custa entregar neste CEP.
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
                 Number.isInteger(item.produto_id) && item.produto_id > 0 &&
                 Number.isInteger(item.quantidade) && item.quantidade > 0 && item.quantidade <= 1000)
 
-        const response = await fetch(new URL(`/public/loja/${loja}/frete`, API_BASE), {
+        const response = await chamarBackend(new URL(`/public/loja/${loja}/frete`, API_BASE), {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify({ cep, itens }),

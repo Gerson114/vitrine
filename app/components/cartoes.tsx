@@ -18,6 +18,7 @@ import {
 import type { IconType } from "react-icons"
 import { useLoja, type Bloco, type CartaoDaLoja } from "@/app/loja/loja-context"
 import { linkWhatsapp, telefoneLegivel } from "@/lib/contato"
+import { linkSeguro } from "@/lib/link"
 
 /**
  * A faixa de cartões logo abaixo do banner — o lugar onde as lojas respondem,
@@ -58,18 +59,6 @@ const ICONES: Record<string, IconType> = {
     etiqueta: FiTag,
 }
 
-/** Aceita só caminho interno ou http(s) — a mesma regra dos outros blocos. */
-function linkSeguro(bruto?: string): string {
-
-    const link = (bruto ?? "").trim()
-
-    if (!link) return ""
-
-    if (link.startsWith("/") && !link.startsWith("//")) return link
-
-    return /^https?:\/\//i.test(link) ? link : ""
-}
-
 export default function Cartoes({ bloco }: { bloco: Bloco }) {
 
     const loja = useLoja()
@@ -104,6 +93,7 @@ export default function Cartoes({ bloco }: { bloco: Bloco }) {
             titulo: preencher(cartao.titulo ?? "").trim(),
             texto: preencher(cartao.texto ?? "").trim(),
             link: linkSeguro(cartao.link),
+            tamanho: cartao.tamanho ?? "medio",
         }))
         // Cartão cujo título sumiu com a etiqueta vazia não tem o que dizer.
         .filter((cartao) => cartao.titulo !== "")
@@ -120,14 +110,31 @@ export default function Cartoes({ bloco }: { bloco: Bloco }) {
 
                     const Icone = cartao.icone
 
+                    // O tamanho é do CARTÃO, não da faixa inteira: a frase de
+                    // uma promoção pede mais destaque que o selo de confiança
+                    // ao lado dela, e os dois nascem do mesmo bloco.
+                    const bolha = cartao.tamanho === "grande"
+                        ? "h-11 w-11"
+                        : cartao.tamanho === "pequeno"
+                            ? "h-7 w-7"
+                            : "h-9 w-9"
+
+                    const iconeLargura = cartao.tamanho === "grande" ? "w-6" : cartao.tamanho === "pequeno" ? "w-4" : "w-5"
+
+                    const tituloTamanho = cartao.tamanho === "grande"
+                        ? "text-[0.95rem]"
+                        : cartao.tamanho === "pequeno"
+                            ? "text-[0.75rem]"
+                            : "text-[0.82rem]"
+
                     const corpo = (
                         <>
-                            <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--destaque)] text-[var(--sobre-destaque)]">
-                                <Icone className="w-5" aria-hidden />
+                            <span className={`mt-0.5 flex ${bolha} shrink-0 items-center justify-center rounded-full bg-[var(--destaque)] text-[var(--sobre-destaque)]`}>
+                                <Icone className={iconeLargura} aria-hidden />
                             </span>
 
                             <div className="min-w-0">
-                                <p className="text-[0.82rem] font-bold leading-tight text-[var(--ink)]">
+                                <p className={`font-bold leading-tight text-[var(--ink)] ${tituloTamanho}`}>
                                     {cartao.titulo}
                                 </p>
 

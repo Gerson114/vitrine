@@ -36,8 +36,18 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
     const temVariacoes = variantes.length > 1
 
     const noCarrinho = itens.find((item) => item.produto.id === produto.id)?.quantidade ?? 0
-    const esgotado = produto.estoque <= 0
-    const limiteAtingido = noCarrinho >= produto.estoque
+    /* "Esgotado" quer dizer coisas diferentes nos dois tipos de produto.
+    
+       Em quem se conta, é estoque zero. Em quem não se conta — a pizza, que é
+       feita quando alguém pede —, contar unidades não responde nada: quem
+       responde é o "tem hoje?" que a cozinha desliga quando acaba a massa.
+       Sem esta distinção, todo prato apareceria como "sem estoque". */
+    const esgotado = produto.sem_contagem
+        ? produto.disponivel === false
+        : produto.estoque <= 0
+    // Quem não conta unidade não tem teto na sacola: dá para pedir dez
+    // pizzas, e a cozinha faz dez.
+    const limiteAtingido = !produto.sem_contagem && noCarrinho >= produto.estoque
 
     const temPromocao =
         produto.preco_promocional != null &&
@@ -204,21 +214,39 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
             ) : null}
 
             <div className={`px-3 pb-3 pt-2.5 sm:px-3.5 ${temVariacoes ? "" : "mt-auto"}`}>
-                <button
-                    type="button"
-                    onClick={() => adicionar(produto)}
-                    disabled={esgotado || limiteAtingido}
-                    className="btn w-full px-2 py-2.5 text-[0.82rem]"
-                >
-                    <FiShoppingCart className="w-4 shrink-0" aria-hidden />
-                    {esgotado
-                        ? "sem estoque"
-                        : limiteAtingido
-                            ? "máximo na sacola"
-                            : noCarrinho > 0
-                                ? `na sacola (${noCarrinho})`
-                                : "comprar"}
-                </button>
+                {/* Produto que faz pergunta não entra na sacola pelo card.
+                
+                    A pizza precisa de borda e o bife precisa de ponto, e
+                    escolher isso não cabe num botão — o card leva à ficha, que
+                    é onde as perguntas estão. Sem isto o produto entraria sem
+                    resposta e o pedido seria recusado só no fim do checkout,
+                    que é o pior lugar possível para descobrir que faltava
+                    escolher o tamanho. */}
+                {produto.tem_perguntas && !esgotado ? (
+                    <Link
+                        href={caminhoDaLoja(loja.slug, `produto/${produto.id}`)}
+                        className="btn w-full px-2 py-2.5 text-[0.82rem]"
+                    >
+                        <FiShoppingCart className="w-4 shrink-0" aria-hidden />
+                        escolher
+                    </Link>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={() => adicionar(produto)}
+                        disabled={esgotado || limiteAtingido}
+                        className="btn w-full px-2 py-2.5 text-[0.82rem]"
+                    >
+                        <FiShoppingCart className="w-4 shrink-0" aria-hidden />
+                        {esgotado
+                            ? "sem estoque"
+                            : limiteAtingido
+                                ? "máximo na sacola"
+                                : noCarrinho > 0
+                                    ? `na sacola (${noCarrinho})`
+                                    : "comprar"}
+                    </button>
+                )}
             </div>
 
         </article>

@@ -1,0 +1,8 @@
+Este diretório é servido como está na raiz do site, e hoje está vazio: os
+ícones do starter do Next (next.svg, vercel.svg, file.svg, globe.svg,
+window.svg) foram removidos por não serem usados em lugar nenhum da vitrine, e
+o favicon mora em app/favicon.ico, que o Next resolve sozinho.
+
+O arquivo existe para o diretório existir. O Git não versiona diretório vazio,
+e o Dockerfile copia `public/` para a imagem: sem ele, um clone novo não teria
+o diretório e o `COPY` falharia na construção.

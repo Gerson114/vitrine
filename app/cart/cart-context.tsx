@@ -3,9 +3,52 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import type { Produto } from "@/app/type/type"
 
+/** Uma escolha do cliente sobre o item: "Catupiry", "Ao ponto". */
+export interface AdicionalEscolhido {
+    opcao_id: number
+    grupo: string
+    nome: string
+    preco: number
+}
+
 export interface ItemCarrinho {
+    /**
+     * A identidade da LINHA, e não a do produto.
+     *
+     * Aqui estava o id do produto, e ele deixou de servir no dia em que o
+     * item passou a ter escolhas: "pizza com borda" e "pizza sem borda" são
+     * o mesmo produto e duas linhas da sacola. A linha é o produto mais o
+     * que foi escolhido mais o recado — mudou qualquer um dos três, é outra
+     * linha.
+     */
+    id: string
+
     produto: Produto
     quantidade: number
+
+    /** O que foi escolhido junto. Vazio na loja que não faz perguntas. */
+    adicionais?: AdicionalEscolhido[]
+
+    /** O recado do cliente sobre este item: "sem cebola". */
+    observacao?: string
+}
+
+/**
+ * A identidade de uma linha da sacola.
+ *
+ * Os ids das opções vão ORDENADOS: escolher catupiry e depois cheddar tem de
+ * cair na mesma linha que escolher cheddar e depois catupiry — é o mesmo
+ * pedido, e duas linhas iguais na sacola é defeito que o cliente vê.
+ */
+function identidadeDaLinha(
+    produtoID: number,
+    adicionais: AdicionalEscolhido[] | undefined,
+    observacao: string | undefined,
+): string {
+
+    const escolhas = (adicionais ?? []).map((a) => a.opcao_id).sort((a, b) => a - b).join(".")
+
+    return `${produtoID}|${escolhas}|${(observacao ?? "").trim().toLowerCase()}`
 }
 
 export interface ResultadoPedido {
@@ -71,16 +114,21 @@ export const ENTREGA_VAZIA: Entrega = {
 
 interface CarrinhoContextValor {
     itens: ItemCarrinho[]
-    adicionar: (produto: Produto) => void
-    remover: (produtoId: number) => void
-    definirQuantidade: (produtoId: number, quantidade: number) => void
+    adicionar: (produto: Produto, adicionais?: AdicionalEscolhido[], observacao?: string) => void
+    remover: (linhaId: string) => void
+    definirQuantidade: (linhaId: string, quantidade: number) => void
     limpar: () => void
     totalItens: number
     totalPreco: number
     aberto: boolean
     abrir: () => void
     fechar: () => void
-    finalizarPedido: (entrega: Entrega, forma?: "whatsapp") => Promise<ResultadoPedido>
+    finalizarPedido: (
+        entrega: Entrega,
+        forma?: "whatsapp",
+        agendadoPara?: string,
+        entrada?: boolean,
+    ) => Promise<ResultadoPedido>
 
     /** Quanto custa entregar num CEP, perguntado ao servidor. */
     cotarFrete: (cep: string) => Promise<Cotacao>
@@ -97,6 +145,46 @@ function chaveStorage(loja: string): string {
 
 function precoUnitario(produto: Produto): number {
     return produto.preco_promocional ?? produto.preco
+}
+
+/**
+ * A sacola salva, conferida antes de virar estado.
+ *
+ * O que está no localStorage não é dado confiável: é texto que sobrevive a
+ * versões do site, que o dono do navegador pode editar à mão e que fica lá
+ * depois de o formato ter mudado. `JSON.parse` aceita `"5"` e `{}` sem
+ * reclamar — e aí o primeiro `itens.reduce` do total lança TypeError DENTRO de
+ * um Provider que embrulha a vitrine inteira, o que na prática é a loja toda
+ * em tela branca para quem tinha aquela sacola. Sem jeito de sair, porque o
+ * carrinho é recarregado no próximo acesso.
+ *
+ * Linha sem produto, sem id ou com quantidade que não é número positivo é
+ * descartada em silêncio: a sacola volta menor, o que é ruim, mas a loja abre.
+ */
+function sacolaSalva(bruto: string): ItemCarrinho[] {
+
+    const dados: unknown = JSON.parse(bruto)
+
+    if (!Array.isArray(dados)) return []
+
+    return dados.filter((linha): linha is ItemCarrinho => {
+
+        if (!linha || typeof linha !== "object") return false
+
+        const item = linha as Partial<ItemCarrinho>
+
+        if (typeof item.id !== "string" || !item.id) return false
+        if (!Number.isFinite(item.quantidade) || (item.quantidade ?? 0) <= 0) return false
+
+        const produto = item.produto as Partial<Produto> | undefined
+
+        // O produto é relido do catálogo em toda tela que mostra preço, mas o
+        // total da sacola é somado a partir DESTA cópia: sem id e sem preço
+        // numérico ela não serve para somar nada.
+        if (!produto) return false
+
+        return Number.isInteger(produto.id) && Number.isFinite(produto.preco)
+    })
 }
 
 export function CartProvider({
@@ -119,7 +207,7 @@ export function CartProvider({
         try {
             const salvo = localStorage.getItem(chaveStorage(loja))
             // eslint-disable-next-line react-hooks/set-state-in-effect
-            if (salvo) setItens(JSON.parse(salvo))
+            if (salvo) setItens(sacolaSalva(salvo))
         } catch {
             // localStorage indisponível ou dado corrompido: começa vazio.
         } finally {
@@ -134,44 +222,74 @@ export function CartProvider({
         localStorage.setItem(chaveStorage(loja), JSON.stringify(itens))
     }, [itens, carregado, loja])
 
-    const adicionar = useCallback((produto: Produto) => {
+    const adicionar = useCallback((
+        produto: Produto,
+        adicionais?: AdicionalEscolhido[],
+        observacao?: string,
+    ) => {
         setItens((atual) => {
-            const existente = atual.find((item) => item.produto.id === produto.id)
-            const limite = produto.estoque
+
+            const id = identidadeDaLinha(produto.id, adicionais, observacao)
+            const existente = atual.find((item) => item.id === id)
+
+            // O limite é do PRODUTO, e ele é contado somando todas as linhas
+            // dele: três pizzas em duas linhas com bordas diferentes são três
+            // unidades da prateleira, e é isso que o estoque tem de aguentar.
+            const jaNaSacola = atual
+                .filter((item) => item.produto.id === produto.id)
+                .reduce((soma, item) => soma + item.quantidade, 0)
+
+            // Quem não conta unidade não tem teto: a pizzaria faz dez pizzas
+            // se pedirem dez, e o estoque dela não é um número na prateleira.
+            if (!produto.sem_contagem && jaNaSacola >= produto.estoque) return atual
 
             if (existente) {
-                if (existente.quantidade >= limite) return atual
                 return atual.map((item) =>
-                    item.produto.id === produto.id
-                        ? { ...item, quantidade: item.quantidade + 1 }
-                        : item
-                )
+                    item.id === id ? { ...item, quantidade: item.quantidade + 1 } : item)
             }
 
-            if (limite <= 0) return atual
-            return [...atual, { produto, quantidade: 1 }]
+            return [...atual, { id, produto, quantidade: 1, adicionais, observacao }]
         })
     }, [])
 
-    const remover = useCallback((produtoId: number) => {
-        setItens((atual) => atual.filter((item) => item.produto.id !== produtoId))
+    const remover = useCallback((linhaId: string) => {
+        setItens((atual) => atual.filter((item) => item.id !== linhaId))
     }, [])
 
-    const definirQuantidade = useCallback((produtoId: number, quantidade: number) => {
-        setItens((atual) =>
-            atual
-                .map((item) =>
-                    item.produto.id === produtoId
-                        ? { ...item, quantidade: Math.min(Math.max(1, quantidade), item.produto.estoque) }
-                        : item
-                )
-        )
+    const definirQuantidade = useCallback((linhaId: string, quantidade: number) => {
+        setItens((atual) => {
+
+            const linha = atual.find((item) => item.id === linhaId)
+
+            if (!linha) return atual
+
+            // O teto é o estoque do produto MENOS o que as outras linhas dele
+            // já levam: duas linhas da mesma pizza não podem somar mais do que
+            // existe na prateleira.
+            const nasOutrasLinhas = atual
+                .filter((item) => item.produto.id === linha.produto.id && item.id !== linhaId)
+                .reduce((soma, item) => soma + item.quantidade, 0)
+
+            const teto = linha.produto.sem_contagem
+                ? Number.MAX_SAFE_INTEGER
+                : Math.max(1, linha.produto.estoque - nasOutrasLinhas)
+
+            return atual.map((item) =>
+                item.id === linhaId
+                    ? { ...item, quantidade: Math.min(Math.max(1, quantidade), teto) }
+                    : item)
+        })
     }, [])
 
     const limpar = useCallback(() => setItens([]), [])
 
     const finalizarPedido = useCallback(
-        async (entrega: Entrega, forma?: "whatsapp"): Promise<ResultadoPedido> => {
+        async (
+            entrega: Entrega,
+            forma?: "whatsapp",
+            agendadoPara?: string,
+            entrada?: boolean,
+        ): Promise<ResultadoPedido> => {
             try {
                 const response = await fetch("/api/pedidos", {
                     method: "POST",
@@ -185,9 +303,19 @@ export function CartProvider({
                         // servidor, pelo cookie httpOnly que o navegador nem
                         // enxerga.
                         loja,
+                        // Uma linha por linha da sacola, e não uma por produto:
+                        // "pizza com borda" e "pizza sem borda" são pedidos
+                        // diferentes do mesmo produto, e somá-las perderia
+                        // metade do que a cozinha precisa fazer.
+                        //
+                        // Dos adicionais vai só o ID da opção. Nome e preço o
+                        // servidor lê do banco — aceitá-los daqui seria deixar
+                        // o comprador escrever quanto a borda custa.
                         itens: itens.map((item) => ({
                             produto_id: item.produto.id,
                             quantidade: item.quantidade,
+                            observacao: item.observacao ?? "",
+                            adicionais: (item.adicionais ?? []).map((a) => ({ opcao_id: a.opcao_id })),
                         })),
 
                         // O telefone sobe fora da entrega porque não é
@@ -206,6 +334,20 @@ export function CartProvider({
                         // loja oferece: mandar "whatsapp" para uma loja que
                         // não combina não fecha pedido — recusa.
                         forma: forma ?? "",
+
+                        // A hora que a pessoa marcou, nas lojas de comida que
+                        // agendam. Vazio é "para agora".
+                        //
+                        // Conferida no servidor contra a antecedência e a
+                        // janela da loja: o campo da tela já só oferece o que
+                        // cabe, mas o corpo da requisição vem do navegador e
+                        // nada impede alguém de mandar outra coisa.
+                        agendado_para: agendadoPara ?? "",
+
+                        // Pagar só uma parte agora. Conferido no servidor
+                        // contra a configuração da loja: mandar `true` para
+                        // uma loja que não parcela não parte o pedido.
+                        entrada: entrada === true,
                     }),
                 })
 
@@ -293,8 +435,15 @@ export function CartProvider({
         [itens]
     )
 
+    // O total soma o produto MAIS o que foi escolhido nele: a borda entra no
+    // preço, e um total sem ela não bate com o que o servidor vai cobrar.
     const totalPreco = useMemo(
-        () => itens.reduce((soma, item) => soma + precoUnitario(item.produto) * item.quantidade, 0),
+        () => itens.reduce((soma, item) => {
+
+            const adicionais = (item.adicionais ?? []).reduce((extra, a) => extra + a.preco, 0)
+
+            return soma + (precoUnitario(item.produto) + adicionais) * item.quantidade
+        }, 0),
         [itens]
     )
 

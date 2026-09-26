@@ -11,6 +11,13 @@
 // (http://localhost:8080) que está certo na máquina de quem desenvolve e é
 // duas coisas ruins em produção: a vitrine não acha o backend — e, se alguém
 // subir um serviço em 8080 na mesma máquina, ela passa a falar com ele.
+//
+// A segunda é TRUSTED_PROXY_COUNT, e o estrago dela é mais silencioso: sem
+// ela o limitador não sabe de quem é cada requisição e joga TODO MUNDO no
+// mesmo balde (ver origemDaRequisicao em security/limite.ts). O teto de oito
+// logins por dez minutos, que é por pessoa, passa a valer para a soma de
+// todos os visitantes de todas as lojas — e o nono cliente do dia recebe
+// "muitas tentativas" sem nunca ter errado uma senha.
 
 export interface Problema {
     variavel: string
@@ -25,7 +32,51 @@ export function ehProducao(): boolean {
 
 /** Tudo o que está inseguro na configuração atual. Lista vazia é tudo certo. */
 export function conferir(): Problema[] {
-    return conferirBackend()
+    return [...conferirBackend(), ...conferirProxy()]
+}
+
+/**
+ * Quantos proxies existem na frente deste servidor.
+ *
+ * Em produção a vitrine nunca está exposta direto: o TLS termina no Caddy, e
+ * é ele quem escreve o endereço real de quem chamou. O processo do Next só vê
+ * a conexão do proxy, então sem saber quantos saltos contar ele não tem como
+ * dizer quem pediu — e é justamente o endereço de quem pediu que é a chave do
+ * limite por origem.
+ *
+ * Por isso a variável é obrigatória em produção, e zero não serve: zero
+ * significa "ninguém na frente", que num deploy com Caddy é falso e faz o
+ * limitador contar o mundo inteiro como um visitante só.
+ *
+ * Um é só o Caddy. Dois é Cloudflare + Caddy — e aí o firewall da VPS tem de
+ * aceitar apenas as faixas da Cloudflare, senão qualquer um bate direto na
+ * origem com o cabeçalho que quiser (ver deploy/PRODUCAO.md).
+ */
+function conferirProxy(): Problema[] {
+
+    if (!ehProducao()) return []
+
+    const bruto = (process.env.TRUSTED_PROXY_COUNT ?? "").trim()
+
+    if (!bruto) {
+        return [{
+            variavel: "TRUSTED_PROXY_COUNT",
+            mensagem: "não definida: o limite por origem cai num balde único e o nono cliente do dia recebe \"muitas tentativas\" sem ter errado nada",
+            correcao: "declare quantos proxies existem na frente da vitrine — 1 com Caddy, 2 com Cloudflare + Caddy",
+        }]
+    }
+
+    const saltos = Number(bruto)
+
+    if (!Number.isInteger(saltos) || saltos < 1 || saltos > 4) {
+        return [{
+            variavel: "TRUSTED_PROXY_COUNT",
+            mensagem: `${JSON.stringify(bruto)} não é um número de saltos utilizável`,
+            correcao: "use um inteiro de 1 a 4 — 1 com Caddy, 2 com Cloudflare + Caddy",
+        }]
+    }
+
+    return []
 }
 
 function conferirBackend(): Problema[] {

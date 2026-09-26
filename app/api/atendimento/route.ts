@@ -1,5 +1,6 @@
 import { API_BASE, erroDoBackend, safeParse, slugValido, tokenDaLoja } from "@/lib/conta"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 /**
  * O chat do cliente com a loja.
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
 
         if (desde) endereco.searchParams.set("desde", desde)
 
-        const resposta = await fetch(endereco, {
+        const resposta = await chamarBackend(endereco, {
             headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
             cache: "no-store",
         })
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
             return Response.json({ erro: "Escreva alguma coisa antes de enviar" }, { status: 400 })
         }
 
-        const resposta = await fetch(new URL(`/public/loja/${loja}/atendimento/mensagens`, API_BASE), {
+        const resposta = await chamarBackend(new URL(`/public/loja/${loja}/atendimento/mensagens`, API_BASE), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

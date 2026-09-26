@@ -1,9 +1,36 @@
 import { API_BASE, erroDoBackend, safeParse, slugValido, tokenDaLoja } from "@/lib/conta"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend, TEMPO_LIMITE_PAGAMENTO } from "@/lib/backend"
+
+/**
+ * Texto cru do navegador, virado string e cortado no limite.
+ *
+ * É uma `function` de módulo, e não um `const` dentro do handler, por um
+ * motivo que já custou um erro em produção: declarada com `const` no meio da
+ * função, ela não existe nas linhas ACIMA dela — e usá-la lá lança
+ * "Cannot access before initialization", que o `catch` do fim transforma num
+ * "Erro interno do servidor" sem pista nenhuma. `function` é içada, então
+ * vale no arquivo todo e não depende de quem foi escrito primeiro.
+ */
+function texto(valor: unknown, limite: number): string {
+    return String(valor ?? "").slice(0, limite)
+}
 
 interface ItemEntrada {
     produto_id: number
     quantidade: number
+
+    /** O recado do cliente sobre este item: "sem cebola", "bem passado". */
+    observacao: string
+
+    /**
+     * O que ele escolheu junto — só os ids.
+     *
+     * Nome e preço NÃO passam por aqui, e é de propósito: quem os lê é o
+     * backend, do próprio banco. Deixá-los viajar seria deixar o comprador
+     * escrever quanto a borda custa.
+     */
+    adicionais: { opcao_id: number }[]
 }
 
 /**
@@ -45,9 +72,24 @@ export async function POST(request: Request) {
         const itens: ItemEntrada[] = itensBrutos
             .map((item) => {
                 const registro = item as Record<string, unknown>
+
+                // Os adicionais: só ids, com teto de quantos cabem num item.
+                // Vinte já é mais escolha do que qualquer cardápio oferece, e
+                // o teto existe pelo mesmo motivo do teto da lista — o que é
+                // absurdo não chega ao backend.
+                const escolhas = Array.isArray(registro.adicionais)
+                    ? (registro.adicionais as unknown[]).slice(0, 20)
+                    : []
+
                 return {
                     produto_id: Number(registro.produto_id),
                     quantidade: Number(registro.quantidade),
+                    observacao: texto(registro.observacao, 200),
+                    adicionais: escolhas
+                        .map((escolha) => ({
+                            opcao_id: Number((escolha as Record<string, unknown>).opcao_id),
+                        }))
+                        .filter((escolha) => Number.isInteger(escolha.opcao_id) && escolha.opcao_id > 0),
                 }
             })
             .filter((item) =>
@@ -64,7 +106,6 @@ export async function POST(request: Request) {
 
         const entregaBruta = (entrada.entrega ?? {}) as Record<string, unknown>
 
-        const texto = (valor: unknown, limite: number) => String(valor ?? "").slice(0, limite)
 
         const entrega = {
             tipo: texto(entregaBruta.tipo, 16),
@@ -76,7 +117,7 @@ export async function POST(request: Request) {
             cidade: texto(entregaBruta.cidade, 80),
         }
 
-        const response = await fetch(new URL(`/public/loja/${loja}/pedidos`, API_BASE), {
+        const response = await chamarBackend(new URL(`/public/loja/${loja}/pedidos`, API_BASE), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -90,14 +131,35 @@ export async function POST(request: Request) {
             // A forma só pode ser uma das que este sistema conhece. Quem
             // confere se a LOJA a oferece é o backend — mandar "whatsapp"
             // para uma loja que cobra por gateway é recusado lá, não aqui.
+            /* Esta lista é escrita à mão DE PROPÓSITO, ao contrário da que
+               monta a loja em lib/loja.ts: aqui o corpo vem do navegador do
+               comprador, e repassá-lo inteiro deixaria ele mandar campo que o
+               backend não espera — inclusive o valor do frete, que é
+               justamente o que não pode vir de fora.
+            
+               O preço a pagar por essa escolha é este: campo novo precisa ser
+               acrescentado aqui, senão some no caminho sem erro nenhum. Foi o
+               que aconteceu com a hora do agendamento, com a entrada e com os
+               adicionais — as três chegavam da tela e morriam nesta função. */
             body: JSON.stringify({
                 itens,
                 entrega,
                 telefone: texto(entrada.telefone, 24),
                 forma: entrada.forma === "whatsapp" ? "whatsapp" : "",
+
+                // A hora marcada pelo cliente. Quem confere se ela cabe na
+                // antecedência e na janela da loja é o backend.
+                agendado_para: texto(entrada.agendado_para, 40),
+
+                // Pagar só uma parte agora. Quem confere se a loja oferece
+                // isso — e quanto é a parte — também é o backend.
+                entrada: entrada.entrada === true,
             }),
-            cache: "no-store",
-        })
+        },
+        // Fechar pedido não para no backend: ele cria a cobrança na
+        // InfinitePay, que é um serviço na internet aberta. O teto de dez
+        // segundos das outras chamadas cortaria uma cobrança legítima no meio.
+        TEMPO_LIMITE_PAGAMENTO)
 
         const dados = safeParse(await response.text())
 

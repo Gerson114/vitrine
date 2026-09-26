@@ -1,5 +1,6 @@
 import { API_BASE, erroDoBackend, safeParse, slugValido, tokenDaLoja } from "@/lib/conta"
 import { lerCorpo } from "@/security/corpo"
+import { chamarBackend } from "@/lib/backend"
 
 /**
  * POST /api/pedido/cancelar — o comprador desistindo antes de pagar.
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
             return Response.json({ erro: "Entre na sua conta para cancelar o pedido" }, { status: 401 })
         }
 
-        const resposta = await fetch(
+        const resposta = await chamarBackend(
             new URL(`/public/loja/${loja}/pedidos/${codigo}/cancelar`, API_BASE),
             {
                 method: "POST",

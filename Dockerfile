@@ -65,5 +65,18 @@ COPY --from=build --chown=node:node /app/public ./public
 
 EXPOSE 3000
 
+# Confere se a vitrine está de pé DE VERDADE, e não só se a porta abriu.
+#
+# A diferença importa: um erro de configuração faz o processo sair (ver
+# instrumentation.ts), mas uma falha depois disso pode deixar o servidor
+# escutando e respondendo 500 a tudo — e um healthcheck de TCP chamaria isso de
+# saudável. A raiz do site serve para a conferência porque é a única página que
+# não fala com o backend: o que ela responde diz respeito só a este container.
+#
+# --spider com -q faz o wget (o do BusyBox, que a imagem alpine já traz) só
+# pedir a página e devolver o código de saída, sem gravar nada em disco.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD wget -q --spider http://127.0.0.1:3000/ || exit 1
+
 # server.js e não "next start": o standalone não traz o CLI do Next.
 CMD ["node", "server.js"]

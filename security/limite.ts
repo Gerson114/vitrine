@@ -99,8 +99,17 @@ export function limitar(chave: string, max: number, janelaMs: number): Veredito 
  * Zero (o padrão) quer dizer "ninguém": aí nenhum cabeçalho de encaminhamento
  * vale, porque exposto direto na internet ele é escrito por quem chama. Um é
  * só o Caddy; dois é Cloudflare + Caddy.
+ *
+ * Zero em PRODUÇÃO é erro de configuração, e não uma escolha: a vitrine roda
+ * atrás do Caddy, e sem contar o salto dele o limitador não sabe quem pediu.
+ * Quem barra a subida nesse caso é security/ambiente.ts — aqui só se garante
+ * que o número usado é um inteiro utilizável, para um valor torto não virar
+ * índice fracionário na leitura do X-Forwarded-For abaixo.
  */
-const PROXIES_CONFIAVEIS = Number(process.env.TRUSTED_PROXY_COUNT ?? "0") || 0
+const PROXIES_CONFIAVEIS = (() => {
+    const bruto = Number(process.env.TRUSTED_PROXY_COUNT ?? "0")
+    return Number.isInteger(bruto) && bruto > 0 ? bruto : 0
+})()
 
 /**
  * Quem está pedindo.
@@ -205,14 +214,20 @@ export function regraDaRota(pathname: string, metodo = "GET"): Regra {
         return { balde: "sair", max: 20, janelaMs: 5 * MINUTO }
     }
 
-    // O chat com a loja. A leitura é folgada porque a tela pergunta de cinco
-    // em cinco segundos enquanto está aberta (doze por minuto, o dobro com
-    // duas abas); a escrita é apertada porque cada mensagem grava no banco e
-    // aparece na tela de quem atende.
+    // O chat com a loja. A leitura é folgada porque a tela pergunta de dois em
+    // dois segundos enquanto a conversa está viva (ver INTERVALO_VIVO em
+    // app/components/atendimento/chat.tsx): trinta por minuto numa aba, e o
+    // teto tem de caber em mais de uma — quem está comprando abre o produto
+    // numa aba e o carrinho noutra, e o chat vai nas duas. Com sessenta por
+    // minuto, que é o que este teto já foi, a segunda aba bastava para o chat
+    // começar a levar 429 e parar de atualizar em silêncio.
+    //
+    // A escrita é apertada porque cada mensagem grava no banco e aparece na
+    // tela de quem atende.
     if (pathname === "/api/atendimento") {
         return escrevendo
             ? { balde: "chat-enviar", max: 30, janelaMs: 5 * MINUTO }
-            : { balde: "chat-ler", max: 60, janelaMs: MINUTO }
+            : { balde: "chat-ler", max: 150, janelaMs: MINUTO }
     }
 
     // O aviso de "está digitando". Vem a cada duas teclas de intervalo
