@@ -35,6 +35,12 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Teto do heap do Node durante o build, pelo mesmo motivo do painel (ver o
+# Dockerfile dele): o servidor tem 4 GB, boa parte já ocupada em repouso, e
+# sem teto o V8 cresce até ser morto pelo kernel no meio do build. O deploy
+# aparece então como cancelado, sem erro nenhum no log.
+ENV NODE_OPTIONS=--max-old-space-size=1536
+
 # O build roda com NODE_ENV=production, mas sem API_URL — e é de propósito:
 # a conferência de ambiente (ver instrumentation.ts) roda na SUBIDA do
 # servidor, não na construção da imagem. Construir não pode depender de
