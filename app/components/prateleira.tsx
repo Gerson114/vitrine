@@ -31,7 +31,13 @@ export default function Prateleira({ id, titulo, grupos }: PrateleiraProps) {
 
     return (
 
-        <section id={id} className="largura py-7 sm:py-10">
+        /* A prateleira ganha faixa: a página era branca de cima a baixo, e uma
+           prateleira terminava onde a outra começava sem nada dizer que mudou
+           de assunto. Com a faixa na placa do tema, as prateleiras e a grade
+           de produtos passam a se alternar — é o recurso que as revistas usam
+           para separar matéria de matéria. */
+        <section id={id} className="faixa py-9 sm:py-12">
+            <div className="largura">
 
             {/* O cabeçalho da prateleira.
 
@@ -82,6 +88,7 @@ export default function Prateleira({ id, titulo, grupos }: PrateleiraProps) {
             </div>
             </div>
 
+            </div>
         </section>
 
     )

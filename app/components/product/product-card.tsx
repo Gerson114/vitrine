@@ -74,11 +74,11 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
         // h-full para o card ocupar toda a altura da célula: numa fileira, os
         // cards têm conteúdo de tamanhos diferentes e sem isso cada um termina
         // numa altura, deixando a linha de baixo serrilhada.
-        <article className="card card-produto group flex h-full flex-col overflow-hidden">
+        <article className="produto card-produto group flex h-full flex-col">
 
             <Link href={caminhoDaLoja(loja.slug, `produto/${produto.id}`)} className="flex flex-1 flex-col">
 
-                <div className="relative">
+                <div className="chapa">
 
                     {/* A moldura (ver globals.css): palco atrás, fio de um
                         pixel por dentro e a sombra de contato sob o produto.
@@ -86,7 +86,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                         um fundo — recortada, de estúdio, tirada no balcão —, e
                         sobre o branco do card as boas e as ruins ficavam
                         igualmente soltas. O palco dá a todas o mesmo chão. */}
-                    <div className="moldura flex aspect-square items-center justify-center p-4 sm:p-5">
+                    <div className="moldura flex aspect-[4/5] items-center justify-center p-4 sm:p-5">
                         {produto.imagem_url ? (
                             <img
                                 src={produto.imagem_url}
@@ -121,9 +121,9 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
 
                 </div>
 
-                <div className="flex flex-col gap-1 border-t border-[var(--linha-suave)] px-3 pb-1 pt-2.5 sm:px-3.5">
+                <div className="flex flex-col gap-1 pb-1 pt-3">
 
-                    <h3 className="line-clamp-2 min-h-[2.4rem] text-[0.875rem] leading-snug text-[var(--ink)] first-letter:uppercase">
+                    <h3 className="produto-nome first-letter:uppercase">
                         {produto.nome}
                     </h3>
 
@@ -161,7 +161,13 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                             <span className="block h-[0.95rem]" aria-hidden />
                         )}
 
-                        <p className="preco mt-0.5">{formatarMoeda(valor)}</p>
+                        <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                            <span className="preco">{formatarMoeda(valor)}</span>
+
+                            {temPromocao && percentual > 0 && !esgotado ? (
+                                <span className="pastilha-off">-{percentual}%</span>
+                            ) : null}
+                        </p>
 
                         {/* Uma linha só para os dois meios. Sem desconto no
                             Pix (que a loja não programou), "R$ 40,00 no Pix"
@@ -190,7 +196,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                 empurra chips e botão para a base, e como os cards da fileira
                 têm a mesma altura os botões terminam alinhados sozinhos. */}
             {temVariacoes ? (
-                <div className="mt-auto flex flex-wrap gap-1.5 px-3 pt-2 sm:px-3.5">
+                <div className="mt-auto flex flex-wrap gap-1.5 pt-2">
                     {variantes.map((variante) => {
                         const semEstoque = variante.estoque <= 0
 
@@ -215,7 +221,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                 </div>
             ) : null}
 
-            <div className={`px-3 pb-3 pt-2.5 sm:px-3.5 ${temVariacoes ? "" : "mt-auto"}`}>
+            <div className={`pt-2.5 ${temVariacoes ? "" : "mt-auto"}`}>
                 {/* Produto que faz pergunta não entra na sacola pelo card.
                 
                     A pizza precisa de borda e o bife precisa de ponto, e
@@ -227,7 +233,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                 {produto.tem_perguntas && !esgotado ? (
                     <Link
                         href={caminhoDaLoja(loja.slug, `produto/${produto.id}`)}
-                        className="btn w-full px-2 py-2.5 text-[0.82rem]"
+                        className="btn-card"
                     >
                         <FiShoppingCart className="w-4 shrink-0" aria-hidden />
                         escolher
@@ -237,7 +243,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                         type="button"
                         onClick={() => adicionar(produto)}
                         disabled={esgotado || limiteAtingido}
-                        className="btn w-full px-2 py-2.5 text-[0.82rem]"
+                        className="btn-card"
                     >
                         <FiShoppingCart className="w-4 shrink-0" aria-hidden />
                         {esgotado

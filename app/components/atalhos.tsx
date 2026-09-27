@@ -56,38 +56,41 @@ export default function Atalhos({ atalhos, aoEscolher }: AtalhosProps) {
                         key={atalho.nome}
                         type="button"
                         onClick={() => aoEscolher(atalho.nome)}
-                        className="card card-hover group relative flex aspect-[3/2] items-end overflow-hidden text-left sm:aspect-[16/10]"
+                        className="produto group flex flex-col text-left"
                     >
-                        {atalho.imagem ? (
-                            <img
-                                src={atalho.imagem}
-                                alt=""
-                                loading="lazy"
-                                aria-hidden
-                                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
-                            />
-                        ) : (
-                            <span className="absolute inset-0 flex items-center justify-center bg-[var(--placa)] text-[var(--ink-3)]">
-                                <FiCamera className="w-6" aria-hidden />
-                            </span>
-                        )}
+                        {/* O nome saiu de DENTRO da foto.
 
-                        {/* O degradê é o que garante o contraste do nome sobre
-                            QUALQUER foto — sem ele, categoria com produto claro
-                            fica com o texto ilegível, que é o defeito clássico
-                            de card com imagem de fundo. */}
-                        <span
-                            aria-hidden
-                            className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 to-transparent"
-                        />
+                            Ele morava sobre a imagem, e para continuar legível
+                            sobre qualquer foto precisava de um degradê preto
+                            cobrindo dois terços do card — que escurecia
+                            justamente a parte do produto que a pessoa estava
+                            tentando ver. Embaixo, em chapa própria, o nome é
+                            sempre legível e a foto aparece inteira: some o
+                            degradê e some o problema que ele existia para
+                            remendar. */}
+                        <span className="chapa moldura flex aspect-[4/3] w-full items-center justify-center overflow-hidden">
+                            {atalho.imagem ? (
+                                <img
+                                    src={atalho.imagem}
+                                    alt=""
+                                    loading="lazy"
+                                    aria-hidden
+                                    className="foto h-full w-full object-cover"
+                                />
+                            ) : (
+                                <span className="flex items-center justify-center text-[var(--ink-3)]">
+                                    <FiCamera className="w-6" aria-hidden />
+                                </span>
+                            )}
+                        </span>
 
-                        <span className="relative flex w-full items-center justify-between gap-1.5 p-2.5 sm:p-3">
-                            <span className="truncate text-[0.82rem] font-semibold capitalize text-white sm:text-[0.9rem]">
+                        <span className="flex w-full items-center justify-between gap-1.5 pt-2.5">
+                            <span className="truncate text-[0.85rem] font-semibold capitalize text-[var(--ink)] sm:text-[0.92rem]">
                                 {atalho.nome}
                             </span>
 
                             <FiArrowRight
-                                className="w-4 shrink-0 text-white transition-transform duration-200 group-hover:translate-x-0.5"
+                                className="w-4 shrink-0 text-[var(--ink-3)] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--destaque)]"
                                 aria-hidden
                             />
                         </span>

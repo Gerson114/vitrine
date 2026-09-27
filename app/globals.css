@@ -525,6 +525,124 @@
   }
 }
 
+/* ==========================================================================
+   O CARD, EM CHAPA — a mudança de LAYOUT
+
+   O desenho anterior era o da loja de departamento: cada produto dentro de uma
+   caixa branca com borda e sombra, numa fileira de caixas. Funciona e é o que
+   todo mundo faz — e era exatamente essa a queixa, porque a página inteira
+   parecia um modelo pronto.
+
+   Aqui a caixa some. O que segura o produto é a CHAPA da foto: um retângulo
+   alto (4:5, e não mais o quadrado), com canto arredondado, e o texto
+   respirando embaixo dele, direto sobre o fundo da página. Sem borda, sem
+   sombra parada — a fileira deixa de ser uma grade de caixas e passa a ser uma
+   sequência de produtos.
+
+   A borda volta, discreta, só quando o cursor entra: é o único momento em que
+   ela tem trabalho a fazer (dizer qual está sob o cursor).
+
+   O retângulo alto não é gosto: 4:5 é a proporção em que cabe uma pessoa de
+   corpo inteiro, um armário e uma caixa de ferramenta sem sobrar ar dos lados
+   — e é a que a vitrine precisa servir, porque ela vende de tudo.
+   ========================================================================== */
+.produto {
+  position: relative;
+  border-radius: var(--radius-lg);
+  transition: transform 200ms ease;
+}
+
+.produto .chapa {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.produto:hover .chapa {
+  border-color: color-mix(in srgb, var(--destaque) 28%, var(--fundo));
+  box-shadow: var(--sombra-2);
+}
+
+/* O nome do produto. Duas linhas no máximo, e a terceira vira reticências:
+   sem isto, um nome comprido empurrava o preço para baixo e a fileira
+   desalinhava justamente no elemento que decide a compra. */
+.produto-nome {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--ink);
+  min-height: 2.36rem;
+}
+
+/* A pastilha de desconto, ao LADO do preço.
+   É a segunda vez que o desconto aparece no card — a primeira é a etiqueta na
+   quina da foto — e as duas dizem coisas diferentes: lá é "este produto está
+   em oferta", aqui é "este preço é quanto você paga a menos". */
+.pastilha-off {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--verde-claro);
+  color: var(--verde);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.25rem 0.45rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* O botão de comprar do card: contorno parado, cheio sob o cursor.
+   O botão cheio em todo card fazia a fileira virar uma parede de retângulos
+   da cor da loja — a cor perdia o sentido de "clique aqui" justamente por
+   estar em toda parte. */
+.btn-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--linha);
+  background: var(--fundo);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.6rem 0.75rem;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.produto:hover .btn-card:not(:disabled),
+.btn-card:hover:not(:disabled) {
+  background: var(--destaque);
+  border-color: var(--destaque);
+  color: var(--sobre-destaque);
+}
+
+.btn-card:disabled {
+  color: var(--ink-3);
+  background: var(--placa);
+  border-color: var(--linha-suave);
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   A FAIXA DE SEÇÃO
+
+   A página era branca de cima a baixo, e por isso uma prateleira terminava e
+   a outra começava sem que nada dissesse que mudou de assunto. Uma faixa sim,
+   outra não, na placa do tema — o mesmo recurso que as revistas usam para
+   separar matéria de matéria.
+   ========================================================================== */
+.faixa {
+  background: var(--placa);
+  border-block: 1px solid var(--linha-suave);
+}
+
 /* A seta da prateleira. Disco de contorno, e não a caixinha quadrada do
    `.chip`: o chip é elemento de formulário (é ele que marca tamanho e
    voltagem no card), e usar a mesma peça para navegar confundia as duas
