@@ -86,7 +86,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                         um fundo — recortada, de estúdio, tirada no balcão —, e
                         sobre o branco do card as boas e as ruins ficavam
                         igualmente soltas. O palco dá a todas o mesmo chão. */}
-                    <div className="moldura flex aspect-[4/5] items-center justify-center p-4 sm:p-5">
+                    <div className={`moldura ${produto.imagem_url ? "" : "sem-foto"} flex aspect-[4/5] items-center justify-center p-4 sm:p-5`}>
                         {produto.imagem_url ? (
                             <img
                                 src={produto.imagem_url}

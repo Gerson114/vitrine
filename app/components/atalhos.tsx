@@ -68,7 +68,7 @@ export default function Atalhos({ atalhos, aoEscolher }: AtalhosProps) {
                             sempre legível e a foto aparece inteira: some o
                             degradê e some o problema que ele existia para
                             remendar. */}
-                        <span className="chapa moldura flex aspect-[4/3] w-full items-center justify-center overflow-hidden">
+                        <span className={`chapa moldura ${atalho.imagem ? "" : "sem-foto"} flex aspect-[4/3] w-full items-center justify-center overflow-hidden`}>
                             {atalho.imagem ? (
                                 <img
                                     src={atalho.imagem}

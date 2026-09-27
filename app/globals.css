@@ -432,6 +432,12 @@
   z-index: 1;
 }
 
+/* Sem foto não há o que pousar: a sombra de contato vira uma mancha cinza no
+   meio do card vazio. */
+.moldura.sem-foto::after {
+  display: none;
+}
+
 /* ==========================================================================
    O CARD DE PRODUTO
 
