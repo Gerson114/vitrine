@@ -92,10 +92,23 @@ export default function BannerSlider() {
         : link
 
     const botao = link ? (
-        <Link href={destino} className="btn mt-4 w-full max-w-[15rem] py-3 md:w-auto md:px-10">
+        <Link href={destino} className="btn mt-1 w-full max-w-[15rem] py-3 md:w-auto md:px-10">
             aproveite
         </Link>
     ) : null
+
+    /* Quem escolhe entre os dois formatos é o lojista, pelo que ele preencheu
+       no painel: banner sem título, sem descrição e sem preço é uma ARTE
+       fechada, e a vitrine a mostra inteira. Preencheu qualquer um dos três,
+       ele quer falar alguma coisa — e aí o texto ganha metade da faixa, ao
+       lado da arte.
+
+       Sem imagem não há formato de arte: o texto ocupa a faixa sozinho. */
+    const semTexto =
+        Boolean(banner.imagem_url) &&
+        !banner.titulo.trim() &&
+        !banner.descricao.trim() &&
+        banner.valor <= 0
 
     return (
 
@@ -106,63 +119,97 @@ export default function BannerSlider() {
             onMouseLeave={() => setPausado(false)}
         >
 
-            <div className="largura grid min-h-[17rem] grid-cols-1 items-center gap-3 py-7 sm:gap-4 md:min-h-[24rem] md:grid-cols-[1fr_1.1fr_0.9fr] md:py-0">
+            {/* DOIS BANNERS NUM, e quem escolhe é o lojista — pelo que ele
+                preenche, sem caixinha de opção nenhuma.
 
-                <div className="order-2 md:order-none">
-                    <p className="text-[1.6rem] font-light leading-[1.05] text-[var(--ink)] sm:text-[2rem] md:text-[2.6rem]">
-                        <strong className="font-bold">{primeiraPalavra(banner.titulo)}</strong>
-                        {restoDoTitulo(banner.titulo)}
-                    </p>
+                SÓ IMAGEM: banner sem título, sem descrição e sem preço vira a
+                arte inteira, de ponta a ponta. É o que um banner de campanha
+                é: uma peça fechada, já desenhada por quem fez a arte. Era
+                justamente isso que o formato anterior estragava — ele
+                espremia a arte numa coluna do meio e cercava de tipografia
+                nossa dos dois lados, e o resultado ficava feio mesmo com uma
+                arte boa.
 
-                    {banner.descricao ? (
-                        <p className="mt-2 max-w-xs text-[0.85rem] leading-relaxed text-[var(--ink-2)] sm:mt-3 sm:text-[0.9rem]">
-                            {banner.descricao}
-                        </p>
-                    ) : null}
-                </div>
+                COM TEXTO: a arte ocupa metade e o texto mora na outra metade,
+                em painel próprio. Divisão, e não sobreposição: a foto vem do
+                lojista e pode ser clara, escura ou cheia de detalhe no meio —
+                texto por cima precisaria de um véu escurecendo justamente o
+                produto que a arte quer mostrar. Ao lado, o texto é legível
+                sobre qualquer arte, sem véu nenhum.
 
-                <div className="order-1 flex h-36 items-center justify-center sm:h-44 md:order-none md:h-[19rem]">
-                    {banner.imagem_url ? (
-                        <img
-                            src={banner.imagem_url}
-                            alt={banner.titulo}
-                            className="h-full w-full object-contain"
-                        />
-                    ) : null}
-                </div>
+                No celular as duas viram uma coluna: arte em cima, texto
+                embaixo. */}
 
-                <div className="order-3 md:order-none">
-                    {percentual > 0 ? (
-                        <>
-                            <p className="text-sm text-[var(--ink-2)]">com até</p>
+            {semTexto ? (
 
-                            <p className="flex items-start text-[var(--ink)]">
-                                <span className="num text-[2.75rem] font-bold leading-[0.85] tracking-tight sm:text-[3.5rem] md:text-[4.5rem]">
-                                    {percentual}
-                                </span>
-                                <span className="mt-1 text-lg font-bold leading-none md:text-2xl">
-                                    %<br />off
-                                </span>
+                <Link
+                    href={destino || "#"}
+                    aria-label={banner.titulo || "Destaque"}
+                    /* Sem link cadastrado o banner não deve virar um clique
+                       que não leva a lugar nenhum: aí ele é só a arte. */
+                    className={`block ${link ? "" : "pointer-events-none"}`}
+                >
+                    <img
+                        src={banner.imagem_url}
+                        alt={banner.titulo || ""}
+                        className="aspect-[3/2] w-full object-cover sm:aspect-[21/8] md:aspect-[24/7]"
+                    />
+                </Link>
+
+            ) : (
+
+                <div className="grid grid-cols-1 items-stretch md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+
+                    {/* A arte. `object-cover` e altura cheia: a metade dela é
+                        uma janela, e janela com barra branca em cima e embaixo
+                        é o que denuncia imagem encaixada à força. */}
+                    <div className="order-1 md:order-2">
+                        {banner.imagem_url ? (
+                            <img
+                                src={banner.imagem_url}
+                                alt={banner.titulo}
+                                className="h-full max-h-[22rem] w-full object-cover"
+                            />
+                        ) : null}
+                    </div>
+
+                    <div className="order-2 flex flex-col justify-center gap-3 px-5 py-7 sm:px-8 sm:py-9 md:order-1 md:py-12">
+
+                        {percentual > 0 ? (
+                            <span className="selo-etiqueta self-start text-[0.85rem]">
+                                {percentual}% OFF
+                            </span>
+                        ) : null}
+
+                        {banner.titulo ? (
+                            <p className="font-[family-name:var(--font-display)] text-[1.7rem] font-semibold leading-[1.08] tracking-[-0.02em] text-[var(--ink)] sm:text-[2.1rem] md:text-[2.5rem]">
+                                {banner.titulo}
                             </p>
+                        ) : null}
 
-                            <p className="preco-antigo mt-2">{formatarMoeda(banner.valor_antigo)}</p>
-                            <p className="num text-2xl font-bold text-[var(--ink)]">{formatarMoeda(banner.valor)}</p>
-                        </>
-                    ) : banner.valor > 0 ? (
-                        <>
-                            <p className="text-sm text-[var(--ink-2)]">a partir de</p>
-
-                            <p className="num text-[2rem] font-bold leading-none text-[var(--ink)] sm:text-[2.5rem] md:text-[3.2rem]">
-                                {formatarMoeda(banner.valor)}
+                        {banner.descricao ? (
+                            <p className="max-w-md text-[0.9rem] leading-relaxed text-[var(--ink-2)]">
+                                {banner.descricao}
                             </p>
-                        </>
-                    ) : null}
+                        ) : null}
 
-                    {botao}
+                        {banner.valor > 0 ? (
+                            <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                                {percentual > 0 ? (
+                                    <span className="preco-antigo">{formatarMoeda(banner.valor_antigo)}</span>
+                                ) : (
+                                    <span className="text-sm text-[var(--ink-2)]">a partir de</span>
+                                )}
+
+                                <span className="preco-grande">{formatarMoeda(banner.valor)}</span>
+                            </p>
+                        ) : null}
+
+                        {botao}
+                    </div>
+
                 </div>
-
-            </div>
-
+            )}
 
             {/* CONTROLES
 
@@ -239,15 +286,6 @@ export default function BannerSlider() {
         </section>
 
     )
-}
-
-function primeiraPalavra(texto: string): string {
-    return texto.split(" ")[0]
-}
-
-function restoDoTitulo(texto: string): string {
-    const resto = texto.split(" ").slice(1).join(" ")
-    return resto ? ` ${resto}` : ""
 }
 
 /**
