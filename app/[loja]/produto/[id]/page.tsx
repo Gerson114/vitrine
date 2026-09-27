@@ -122,13 +122,18 @@ export default async function ProdutoPage({ params }: PageProps<"/[loja]/produto
                         foto (ficha técnica, descrição, relacionados), e sem
                         isto a pessoa perde a imagem de vista justamente
                         enquanto lê o que está comprando. */}
+                    {/* A mesma moldura do card (ver globals.css): palco
+                        atrás, fio por dentro e sombra de contato sob o
+                        produto. É o que faz a foto da ficha e a da grade
+                        pertencerem à mesma loja — antes eram dois desenhos,
+                        um quadrado branco aqui e outro lá. */}
                     <div className="card relative overflow-hidden lg:sticky lg:top-32">
-                        <div className="flex aspect-square items-center justify-center overflow-hidden bg-white p-4 sm:p-8">
+                        <div className="moldura flex aspect-square items-center justify-center p-5 sm:p-9">
                             {produto.imagem_url ? (
                                 <img
                                     src={produto.imagem_url}
                                     alt={produto.nome}
-                                    className={`h-full w-full object-contain ${esgotado ? "grayscale" : ""}`}
+                                    className={`h-full w-full object-contain ${esgotado ? "opacity-45 grayscale" : ""}`}
                                 />
                             ) : (
                                 <span className="flex flex-col items-center gap-2 text-[var(--ink-3)]">
@@ -139,14 +144,14 @@ export default async function ProdutoPage({ params }: PageProps<"/[loja]/produto
                         </div>
 
                         {esgotado ? (
-                            <span className="absolute left-3 top-3 rounded-[var(--radius-sm)] bg-[var(--ink)] px-2.5 py-1 text-[0.72rem] font-bold uppercase tracking-wide text-white">
+                            <span className="selo-etiqueta selo-fora absolute left-3 top-3 z-[3] text-[0.82rem] uppercase">
                                 esgotado
                             </span>
                         ) : null}
 
                         {temPromocao && percentual > 0 && !esgotado ? (
-                            <span className="selo-off absolute left-3 top-3 text-[0.85rem]">
-                                -{percentual}%
+                            <span className="selo-etiqueta absolute left-3 top-3 z-[3] text-[0.85rem]">
+                                {percentual}% OFF
                             </span>
                         ) : null}
                     </div>
@@ -160,7 +165,7 @@ export default async function ProdutoPage({ params }: PageProps<"/[loja]/produto
                             produto em caixa baixa parece cadastro pela metade.
                             capitalize estragaria os nomes que já vêm certos —
                             "Smart Tv Lg 65 Qned" viraria pior do que já é. */}
-                        <h1 className="mt-1.5 text-[1.35rem] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)] first-letter:uppercase sm:text-[1.6rem]">
+                        <h1 className="font-[family-name:var(--font-display)] mt-1.5 text-[1.45rem] font-semibold leading-tight tracking-[-0.02em] text-[var(--ink)] first-letter:uppercase sm:text-[1.75rem]">
                             {produto.nome}
                         </h1>
 

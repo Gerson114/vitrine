@@ -236,7 +236,7 @@ export default function Header({
                             />
                         ) : (
                             <>
-                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--sobre-destaque)] text-base font-bold text-[var(--destaque)] sm:h-10 sm:w-10 sm:text-lg">
+                                <span className="font-[family-name:var(--font-display)] flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--sobre-destaque)] text-base font-bold text-[var(--destaque)] sm:h-10 sm:w-10 sm:text-lg">
                                     {loja.nome.trim().charAt(0).toUpperCase() || "M"}
                                 </span>
 
@@ -245,7 +245,7 @@ export default function Header({
                                     linha inteira: no celular fica apertado o
                                     bastante para o nome caber sem reticências
                                     e volta ao normal a partir de `sm`. */}
-                                <span className="min-w-0 truncate text-[0.85rem] font-semibold uppercase tracking-[0.12em] text-[var(--sobre-destaque)] sm:max-w-[16rem] sm:text-[0.95rem] sm:tracking-[0.28em]">
+                                <span className="font-[family-name:var(--font-display)] min-w-0 truncate text-[0.9rem] font-semibold uppercase tracking-[0.1em] text-[var(--sobre-destaque)] sm:max-w-[16rem] sm:text-[1.02rem] sm:tracking-[0.22em]">
                                     {loja.nome}
                                 </span>
                             </>

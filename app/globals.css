@@ -33,6 +33,7 @@
   --color-background: var(--fundo);
   --color-foreground: var(--ink);
   --font-sans: var(--font-source);
+  --font-display: var(--font-display);
 
   /* Canto levemente arredondado, como nas lojas de referência. Não é
      enfeite: quadrado de ponta a ponta, um card sem sombra encosta no
@@ -192,10 +193,11 @@
    de um subtítulo, e uma seção anunciada em voz baixa não parece seção — a
    página inteira virava uma lista contínua de produtos. */
 .titulo {
-  font-size: 1.3rem;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
+  font-family: var(--font-display), var(--font-source), sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
   color: var(--ink);
 }
 
@@ -211,9 +213,40 @@
 .titulo-fio::after {
   content: "";
   display: block;
-  width: 3rem;
-  height: 3px;
-  margin-top: 0.6rem;
+  width: 2.25rem;
+  height: 2px;
+  margin-top: 0.55rem;
+  border-radius: 999px;
+  background: var(--destaque);
+}
+
+/* ==========================================================================
+   O OLHO DE SEÇÃO
+
+   A linha miúda em caixa alta que vem ANTES do título ("ofertas", "novidades")
+   com um traço curto à esquerda. Custa uma linha de 11px e faz o trabalho que
+   o título sozinho não fazia: separar uma seção da outra numa página que é,
+   de cima a baixo, fileira de produto atrás de fileira de produto.
+
+   O traço é da cor da loja. É um dos poucos lugares em que a cor de marca
+   aparece sem estar dentro de um botão — e é de propósito: marca que só
+   existe em botão não é marca, é enfeite de call-to-action.
+   ========================================================================== */
+.olho {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.olho::before {
+  content: "";
+  width: 1.25rem;
+  height: 2px;
   border-radius: 999px;
   background: var(--destaque);
 }
@@ -318,12 +351,193 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ==========================================================================
+   A MOLDURA DA FOTO
+
+   É a peça que dá identidade à vitrine, e ela nasceu de um problema real: a
+   foto de produto vinha do lojista, cada uma com um fundo — branco recortado,
+   cinza de estúdio, foto tirada no balcão. Postas lado a lado num card
+   branco, as boas e as ruins ficavam igualmente soltas, como se alguém
+   tivesse colado figuras numa folha.
+
+   A moldura resolve isso com três coisas que se veem sem se notar:
+
+     1. um palco (--palco, a quarta cor que o lojista escolhe) atrás do
+        produto, que dá a todas as fotos o mesmo chão;
+     2. um fio interno de meio pixel, que fecha a foto como objeto em vez de
+        deixá-la sangrar no card;
+     3. uma SOMBRA DE CONTATO — a elipse suave sob o produto. É o detalhe que
+        faz o olho ler "isto está pousado aqui" em vez de "isto está flutuando
+        num retângulo", e é o que separa esta vitrine de qualquer modelo
+        pronto, onde a foto é só um quadrado.
+
+   A sombra cresce um pouco quando o cursor entra no card, junto com o zoom da
+   foto. Nada disso acontece para quem pediu menos movimento.
+   ========================================================================== */
+.moldura {
+  position: relative;
+  overflow: hidden;
+  background: var(--palco);
+}
+
+/* O fio interno. `inset` e não `border`: borda mudaria o tamanho da caixa e
+   brigaria com a borda do card. */
+.moldura::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+/* A sombra de contato. Elipse achatada, colada à base da moldura. */
+.moldura::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  bottom: 7%;
+  width: 62%;
+  height: 8%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--ink) 22%, transparent) 0%,
+    transparent 72%
+  );
+  transition: width 260ms ease-out, opacity 260ms ease-out;
+}
+
+.moldura > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   O CARD DE PRODUTO
+
+   Ele NÃO sobe sob o cursor. Card que levanta é o gesto que todo modelo usa,
+   e numa grade de vinte produtos vinte retângulos pulando é ruído — fora que
+   a fileira inteira treme quando o dedo passa raspando no celular.
+
+   O que responde é a FOTO: ela cresce um pouco dentro da moldura e a sombra
+   de contato abre junto, como se o produto tivesse sido levantado para perto
+   do olho. O card só troca a cor da borda, para dizer qual está sob o cursor.
+   ========================================================================== */
+.card-produto {
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.card-produto:hover {
+  border-color: color-mix(in srgb, var(--destaque) 32%, var(--fundo));
+  box-shadow: var(--sombra-2);
+}
+
+.card-produto .foto {
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.card-produto:hover .foto {
+  transform: scale(1.06);
+}
+
+.card-produto:hover .moldura::after {
+  width: 70%;
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   O SELO DE DESCONTO, EM FORMA DE ETIQUETA
+
+   Era um retângulo de canto arredondado — o mesmo selo de qualquer loja. Aqui
+   ele tem a forma de uma etiqueta de preço: a ponta cortada em diagonal à
+   direita e o furo do barbante. É desenho puro, feito com clip-path e um
+   pseudo-elemento, sem imagem nenhuma a carregar.
+
+   É um sinal pequeno e é justamente por isso que funciona: quem já viu mil
+   vitrines reconhece na hora que esta foi desenhada por alguém.
+   ========================================================================== */
+.selo-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--off-fundo);
+  color: var(--off-texto);
+  font-family: var(--font-display), var(--font-source), sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  padding: 0.32rem 0.7rem 0.32rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+  border-radius: 3px;
+
+  /* A ponta da etiqueta, à direita. */
+  clip-path: polygon(0 0, calc(100% - 0.45rem) 0, 100% 50%, calc(100% - 0.45rem) 100%, 0 100%);
+}
+
+/* O furo do barbante. */
+.selo-etiqueta::before {
+  content: "";
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--off-texto) 70%, var(--off-fundo));
+}
+
+/* O mesmo selo, na cor do "esgotado": tinta do texto, sem alarme. */
+.selo-fora {
+  background: var(--ink);
+  color: var(--fundo);
+}
+
+.selo-fora::before {
+  background: color-mix(in srgb, var(--fundo) 60%, var(--ink));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-produto .foto,
+  .moldura::after {
+    transition: none;
+  }
+
+  .card-produto:hover .foto {
+    transform: none;
+  }
+}
+
+/* A seta da prateleira. Disco de contorno, e não a caixinha quadrada do
+   `.chip`: o chip é elemento de formulário (é ele que marca tamanho e
+   voltagem no card), e usar a mesma peça para navegar confundia as duas
+   funções. Sob o cursor ela ganha a cor da loja. */
+.seta-trilho {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--linha);
+  background: var(--fundo);
+  color: var(--ink-2);
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+
+.seta-trilho:hover {
+  border-color: var(--destaque);
+  color: var(--destaque);
+  background: color-mix(in srgb, var(--destaque) 6%, var(--fundo));
+}
+
 /* O PREÇO.
    É o número que decide a compra, e por isso é o maior texto do card depois
    do nada — 1.12rem era tamanho de texto corrido. */
 .preco {
+  font-family: var(--font-display), var(--font-source), sans-serif;
   font-size: 1.35rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
   color: var(--preco-cor);
@@ -338,8 +552,9 @@
 
 /* O mesmo número, no tamanho da página de produto, onde ele é o assunto. */
 .preco-grande {
+  font-family: var(--font-display), var(--font-source), sans-serif;
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.05;
   color: var(--preco-cor);

@@ -33,16 +33,23 @@ export default function Prateleira({ id, titulo, grupos }: PrateleiraProps) {
 
         <section id={id} className="largura py-7 sm:py-10">
 
+            {/* O cabeçalho da prateleira.
+
+                O título é do lojista (ele o escreve no editor da home), então
+                nada é acrescentado a ele aqui — nenhum "confira", nenhum
+                "imperdível" que a loja não escreveu. O que muda é o desenho:
+                o fio curto da cor da loja embaixo do nome, e as setas como
+                discos de contorno em vez de caixinhas quadradas. */}
             <div className="mb-4 flex items-end justify-between gap-4">
 
                 <h2 className="titulo titulo-fio">{titulo}</h2>
 
-                <div className="hidden gap-1.5 md:flex">
+                <div className="hidden gap-2 md:flex">
                     <button
                         type="button"
                         onClick={() => correr(-1)}
                         aria-label="Voltar"
-                        className="chip flex h-8 w-8 items-center justify-center"
+                        className="seta-trilho"
                     >
                         <FiChevronLeft className="w-4" aria-hidden />
                     </button>
@@ -51,7 +58,7 @@ export default function Prateleira({ id, titulo, grupos }: PrateleiraProps) {
                         type="button"
                         onClick={() => correr(1)}
                         aria-label="Avançar"
-                        className="chip flex h-8 w-8 items-center justify-center"
+                        className="seta-trilho"
                     >
                         <FiChevronRight className="w-4" aria-hidden />
                     </button>

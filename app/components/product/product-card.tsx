@@ -74,24 +74,26 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
         // h-full para o card ocupar toda a altura da célula: numa fileira, os
         // cards têm conteúdo de tamanhos diferentes e sem isso cada um termina
         // numa altura, deixando a linha de baixo serrilhada.
-        <article className="card card-hover group flex h-full flex-col overflow-hidden">
+        <article className="card card-produto group flex h-full flex-col overflow-hidden">
 
             <Link href={caminhoDaLoja(loja.slug, `produto/${produto.id}`)} className="flex flex-1 flex-col">
 
                 <div className="relative">
 
-                    {/* Fundo branco, e não a placa cinza de antes: loja de
-                        departamento vende de eletrodoméstico a alimento, e
-                        foto de produto com fundo branco recortada sobre placa
-                        cinza fica com um retângulo claro no meio do cinza. */}
-                    <div className="flex aspect-square items-center justify-center overflow-hidden bg-white p-3 sm:p-4">
+                    {/* A moldura (ver globals.css): palco atrás, fio de um
+                        pixel por dentro e a sombra de contato sob o produto.
+                        Ela existe porque as fotos vêm do lojista, cada uma com
+                        um fundo — recortada, de estúdio, tirada no balcão —, e
+                        sobre o branco do card as boas e as ruins ficavam
+                        igualmente soltas. O palco dá a todas o mesmo chão. */}
+                    <div className="moldura flex aspect-square items-center justify-center p-4 sm:p-5">
                         {produto.imagem_url ? (
                             <img
                                 src={produto.imagem_url}
                                 alt={produto.nome}
                                 loading="lazy"
-                                className={`h-full w-full object-contain transition-transform duration-500 ease-out ${
-                                    esgotado ? "opacity-50 grayscale" : "group-hover:scale-[1.07]"
+                                className={`foto h-full w-full object-contain ${
+                                    esgotado ? "opacity-45 grayscale" : ""
                                 }`}
                             />
                         ) : (
@@ -106,13 +108,13 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                         Antes era uma faixa atravessando a base da foto, que
                         tapava o produto justamente nas fotos boas. */}
                     {temPromocao && percentual > 0 && !esgotado ? (
-                        <span className="selo-off absolute left-2 top-2">
-                            -{percentual}%
+                        <span className="selo-etiqueta absolute left-2.5 top-2.5 z-[3]">
+                            {percentual}% OFF
                         </span>
                     ) : null}
 
                     {esgotado ? (
-                        <span className="absolute left-2 top-2 rounded-[var(--radius-sm)] bg-[var(--ink)] px-2 py-1 text-[0.68rem] font-bold uppercase tracking-wide text-white">
+                        <span className="selo-etiqueta selo-fora absolute left-2.5 top-2.5 z-[3] uppercase">
                             esgotado
                         </span>
                     ) : null}
@@ -121,7 +123,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
 
                 <div className="flex flex-col gap-1 border-t border-[var(--linha-suave)] px-3 pb-1 pt-2.5 sm:px-3.5">
 
-                    <h3 className="line-clamp-2 min-h-[2.35rem] text-[0.85rem] leading-snug text-[var(--ink-2)] first-letter:uppercase">
+                    <h3 className="line-clamp-2 min-h-[2.4rem] text-[0.875rem] leading-snug text-[var(--ink)] first-letter:uppercase">
                         {produto.nome}
                     </h3>
 

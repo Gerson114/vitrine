@@ -34,7 +34,9 @@ export default function Atalhos({ atalhos, aoEscolher }: AtalhosProps) {
         <section className="largura py-7 sm:py-10">
 
             <div className="mb-4 flex items-end justify-between gap-4">
-                <h2 className="titulo titulo-fio">Escolha por categoria</h2>
+                <p className="olho mb-2">Categorias</p>
+
+                <h2 className="titulo">Escolha por categoria</h2>
 
                 <span className="hidden text-[0.78rem] text-[var(--ink-3)] sm:block">
                     {atalhos.length} {atalhos.length === 1 ? "categoria" : "categorias"}
