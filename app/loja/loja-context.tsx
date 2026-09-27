@@ -124,6 +124,23 @@ export interface AtendimentoDaLoja {
     dias_para_agendar?: number
 }
 
+/**
+ * Como o pedido desta loja chega ao comprador.
+ *
+ * As duas formas que existem: sair para o endereço, ou o cliente buscar no
+ * balcão. A cotação de frete traz as mesmas duas respostas, mas só nasce
+ * quando alguém digita um CEP — e quem vai buscar na loja nunca digita CEP.
+ * Por isso elas vêm junto da loja: o checkout precisa saber quais caminhos
+ * existem antes de desenhar a tela.
+ */
+export interface EntregaDaLoja {
+    /** A loja tem a entrega ligada e uma tabela de frete montada. */
+    faz_entrega?: boolean
+
+    /** A loja deixa o cliente buscar no balcão, sem frete. */
+    retirada_na_loja?: boolean
+}
+
 export interface Bloco {
     id: string
     tipo: string
@@ -248,6 +265,15 @@ export interface LojaAtual {
      * hora aparecer depois de a pessoa já ter decidido.
      */
     atendimento?: AtendimentoDaLoja
+
+    /**
+     * Se esta loja entrega e se ela deixa retirar no balcão.
+     *
+     * Ausente vale como "as duas coisas": é o que a vitrine supunha antes
+     * deste campo existir, e é o que mantém uma resposta antiga do servidor
+     * funcionando em vez de esconder o checkout inteiro.
+     */
+    entrega?: EntregaDaLoja
 
     /**
      * As palavras da loja: cada texto que a vitrine escreve sozinha, já

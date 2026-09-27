@@ -98,11 +98,20 @@ export default function CartDrawer() {
         }
     }, [aberto])
 
-    // O que esta loja oferece. Enquanto ninguém digitou um CEP a cotação é
-    // nula, e aí valem os padrões: oferecer a entrega (para o cliente digitar
-    // o CEP e descobrir) e a retirada.
-    const podeEntregar = cotacao ? cotacao.disponivel : true
-    const podeRetirar = cotacao ? cotacao.retirada_na_loja : true
+    /* O que esta loja oferece.
+    
+       A cotação é quem sabe, mas ela só existe depois de alguém digitar um
+       CEP — e quem vai buscar no balcão nunca digita CEP. Enquanto ela é
+       nula vale o que a própria loja respondeu (`loja.entrega`), que chega
+       junto da vitrine na primeira requisição.
+    
+       Antes deste campo existir, o padrão sem cotação era "oferece as duas".
+       A loja com a retirada desligada aparecia oferecendo retirada, e o
+       comprador que não digitava CEP fechava um pedido para buscar num
+       balcão que não recebe ninguém. Loja antiga, sem o campo, continua no
+       padrão permissivo: `?? true` nos dois. */
+    const podeEntregar = cotacao ? cotacao.disponivel : loja.entrega?.faz_entrega ?? true
+    const podeRetirar = cotacao ? cotacao.retirada_na_loja : loja.entrega?.retirada_na_loja ?? true
 
     /* Loja que só entrega não deve mostrar o pedido como retirada — e o
        contrário também vale, que é o que faltava aqui: escolher "Receber em
@@ -119,6 +128,17 @@ export default function CartDrawer() {
        só aparecem quando as duas opções existem), e sumir sem dizer nada é
        como a pessoa acaba num pedido de retirada sem ter mudado de ideia. */
     const entregaRecusada = Boolean(cotacao) && !podeEntregar && entrega.tipo === "entrega"
+
+    /* Esta loja não entrega e também não tem balcão para retirada. Não
+       sobra caminho nenhum para o pedido chegar ao comprador: o checkout
+       não tem como seguir, e insistir só criaria um pedido que o servidor
+       gravaria como retirada (ver resolverEntrega, no backend) numa loja
+       sem retirada para oferecer.
+    
+       Não depende da cotação: com `loja.entrega` na mão isto é sabido
+       assim que a vitrine abre, e dizê-lo antes do CEP é a diferença entre
+       avisar e deixar a pessoa preencher o endereço à toa. */
+    const semComoReceber = !podeEntregar && !podeRetirar
 
     const freteAtual = querEntrega && cotacao && cotacao.disponivel ? cotacao.valor : 0
     const totalComFrete = totalPreco + freteAtual
@@ -263,6 +283,15 @@ export default function CartDrawer() {
         // marcasse a hora fecharia o pedido como se fosse para agora.
         if (modoDaEntrega === "agendado" && agendadoPara.trim() === "") {
             setErro("Escolha o dia e a hora da entrega.")
+            return
+        }
+
+        // Os botões já ficam desligados neste caso, mas o formulário tem campo
+        // de texto: Enter submete sem passar por botão nenhum. Sem esta
+        // conferência, o pedido iria como retirada para uma loja que não
+        // entrega neste endereço nem retira no balcão.
+        if (semComoReceber) {
+            setErro("Esta loja não faz entrega e não deixa retirar no balcão. Fale com a loja para combinar o seu pedido.")
             return
         }
 
@@ -501,11 +530,15 @@ export default function CartDrawer() {
                                 {/* Dito na tela, e não descoberto no comprovante:
                                     o pedido vai sair como retirada porque a loja
                                     não entrega, e não porque alguém trocou a
-                                    escolha. */}
-                                {entregaRecusada ? (
+                                    escolha. Quando nem a retirada existe, o aviso
+                                    troca de texto: não há pedido a fechar, e os
+                                    botões abaixo ficam desligados. */}
+                                {entregaRecusada || semComoReceber ? (
                                     <p className="flex items-start gap-2 rounded-[var(--radius-sm)] bg-[var(--placa)] px-3 py-2 text-[0.8rem] font-semibold text-[var(--ink)]">
                                         <FiHome className="mt-0.5 w-4 shrink-0" aria-hidden />
-                                        Esta loja ainda não faz entrega. O pedido vai como retirada no balcão.
+                                        {semComoReceber
+                                            ? "Esta loja não faz entrega e também não deixa retirar no balcão. Fale com a loja para combinar o seu pedido."
+                                            : "Esta loja não faz entrega. O pedido vai como retirada no balcão."}
                                     </p>
                                 ) : null}
 
@@ -853,7 +886,7 @@ export default function CartDrawer() {
                                         quem prefere falar com a loja — e é o único que
                                         existe quando ela não conectou provedor. */}
                                     {loja.aceita_pagamento && !soCombina ? (
-                                        <button type="submit" disabled={enviando || abaixoDoMinimo} className="btn w-full py-3.5 text-[0.95rem]">
+                                        <button type="submit" disabled={enviando || abaixoDoMinimo || semComoReceber} className="btn w-full py-3.5 text-[0.95rem]">
                                             {enviando
                                                 ? "enviando…"
                                                 : ofereceEntrada && pagamento === "entrada"
@@ -865,7 +898,7 @@ export default function CartDrawer() {
                                     {loja.combina_no_whatsapp ? (
                                         <button
                                             type="button"
-                                            disabled={enviando || abaixoDoMinimo}
+                                            disabled={enviando || abaixoDoMinimo || semComoReceber}
                                             onClick={() => void enviarPedido(undefined, "whatsapp")}
                                             className={`w-full py-3.5 text-[0.95rem] ${soCombina ? "btn" : "btn btn-claro"}`}
                                         >
