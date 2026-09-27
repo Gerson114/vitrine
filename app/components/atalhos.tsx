@@ -34,9 +34,15 @@ export default function Atalhos({ atalhos, aoEscolher }: AtalhosProps) {
         <section className="largura py-7 sm:py-10">
 
             <div className="mb-4 flex items-end justify-between gap-4">
-                <p className="olho mb-2">Categorias</p>
 
-                <h2 className="titulo">Escolha por categoria</h2>
+                {/* O olho e o título são UMA peça, e por isso vivem na mesma
+                    coluna: soltos lado a lado dentro do `justify-between`, o
+                    olho ia para a esquerda e o título para o meio da linha. */}
+                <div>
+                    <p className="olho mb-1.5">Categorias</p>
+
+                    <h2 className="titulo">Escolha por categoria</h2>
+                </div>
 
                 <span className="hidden text-[0.78rem] text-[var(--ink-3)] sm:block">
                     {atalhos.length} {atalhos.length === 1 ? "categoria" : "categorias"}

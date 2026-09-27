@@ -377,7 +377,24 @@
 .moldura {
   position: relative;
   overflow: hidden;
-  background: var(--palco);
+
+  /* Vinheta, e não um chapado de cor.
+  
+     O palco cheio parecia bom com foto recortada em PNG e péssimo com a foto
+     que a maioria dos lojistas tem: JPEG com fundo branco chapado. Sobre a
+     placa colorida, aquele branco vira um retângulo claro no meio do card —
+     exatamente o defeito que o desenho anterior já tinha evitado ao usar
+     fundo branco.
+  
+     A vinheta resolve os dois casos com uma regra só: o centro é o fundo da
+     loja (onde o produto fica, e onde a foto de fundo branco encosta sem
+     emenda) e a cor do palco aparece só nas bordas, dando profundidade sem
+     desenhar retângulo nenhum. */
+  background: radial-gradient(
+    115% 95% at 50% 38%,
+    var(--fundo) 42%,
+    color-mix(in srgb, var(--palco) 65%, var(--fundo)) 100%
+  );
 }
 
 /* O fio interno. `inset` e não `border`: borda mudaria o tamanho da caixa e
@@ -404,7 +421,7 @@
   border-radius: 999px;
   background: radial-gradient(
     ellipse at center,
-    color-mix(in srgb, var(--ink) 22%, transparent) 0%,
+    color-mix(in srgb, var(--ink) 16%, transparent) 0%,
     transparent 72%
   );
   transition: width 260ms ease-out, opacity 260ms ease-out;
