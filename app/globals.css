@@ -579,10 +579,21 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   line-height: 1.35;
   color: var(--ink);
-  min-height: 2.36rem;
+  min-height: 2.43rem;
+
+  /* A quebra de nome comprido sem espaço ("Ventilador/Circulador") não pode
+     estourar a coluna: no celular ela tem pouco mais de 160px. */
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 640px) {
+  .produto-nome {
+    font-size: 0.875rem;
+    min-height: 2.36rem;
+  }
 }
 
 /* A pastilha de desconto, ao LADO do preço.
@@ -612,14 +623,26 @@
   justify-content: center;
   gap: 0.4rem;
   width: 100%;
+
+  /* 2.75rem = 44px, o alvo que o dedo acerta sem pegar o card vizinho. No
+     desktop ele encolhe de novo: lá quem aponta é o cursor, e botão alto
+     numa fileira de cinco cards come altura de página à toa. */
+  min-height: 2.75rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--linha);
   background: var(--fundo);
   color: var(--ink);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 700;
   padding: 0.6rem 0.75rem;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+@media (min-width: 640px) {
+  .btn-card {
+    min-height: 2.5rem;
+    font-size: 0.82rem;
+  }
 }
 
 .produto:hover .btn-card:not(:disabled),

@@ -352,7 +352,7 @@ export default function Vitrine({ buscaInicial = "" }: { buscaInicial?: string }
 
 
                 {loading ? (
-                    <div className="grid grid-cols-2 gap-x-2.5 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-6 lg:grid-cols-4 xl:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-4 xl:grid-cols-5">
                         {Array.from({ length: 8 }).map((_, i) => (
                             <div key={i} className="card">
                                 <div className="aspect-square animate-pulse bg-[var(--placa)]" />
@@ -409,7 +409,7 @@ export default function Vitrine({ buscaInicial = "" }: { buscaInicial?: string }
 
                 {!loading && !erro && visiveis.length > 0 ? (
                     <>
-                        <div className="grid grid-cols-2 gap-x-2.5 gap-y-5 sm:grid-cols-3 sm:gap-x-4 sm:gap-y-6 lg:grid-cols-4 xl:grid-cols-5">
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-8 lg:grid-cols-4 xl:grid-cols-5">
                             {gruposDaPagina.map((grupo) => (
                                 <ProductCard key={grupo.nome} variantes={grupo.variantes} />
                             ))}

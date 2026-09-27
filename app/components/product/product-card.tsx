@@ -121,7 +121,12 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
 
                 </div>
 
-                <div className="flex flex-col gap-1 pb-1 pt-3">
+                {/* O recuo lateral não é enfeite: sem a caixa do card, o
+                    texto ficava rente à borda da chapa — e no celular, onde a
+                    grade é de duas colunas, rente à borda da TELA. Meio
+                    centímetro de ar devolve a linha ao seu lugar sem trazer a
+                    caixa de volta. */}
+                <div className="flex flex-col gap-1 px-1.5 pb-1 pt-3 sm:px-2">
 
                     <h3 className="produto-nome first-letter:uppercase">
                         {produto.nome}
@@ -196,7 +201,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                 empurra chips e botão para a base, e como os cards da fileira
                 têm a mesma altura os botões terminam alinhados sozinhos. */}
             {temVariacoes ? (
-                <div className="mt-auto flex flex-wrap gap-1.5 pt-2">
+                <div className="mt-auto flex flex-wrap gap-1.5 px-1.5 pt-2 sm:px-2">
                     {variantes.map((variante) => {
                         const semEstoque = variante.estoque <= 0
 
@@ -206,7 +211,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                                 type="button"
                                 onClick={() => setSelecionadoId(variante.id)}
                                 aria-pressed={variante.id === produto.id}
-                                className={`chip flex h-8 min-w-8 items-center justify-center px-2 text-[0.75rem] font-semibold uppercase ${
+                                className={`chip flex h-9 min-w-9 items-center justify-center px-2.5 text-[0.75rem] font-semibold uppercase sm:h-8 sm:min-w-8 ${
                                     variante.id === produto.id
                                         ? "chip-ativo"
                                         : semEstoque
@@ -221,7 +226,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                 </div>
             ) : null}
 
-            <div className={`pt-2.5 ${temVariacoes ? "" : "mt-auto"}`}>
+            <div className={`px-1.5 pt-3 sm:px-2 ${temVariacoes ? "" : "mt-auto"}`}>
                 {/* Produto que faz pergunta não entra na sacola pelo card.
                 
                     A pizza precisa de borda e o bife precisa de ponto, e
