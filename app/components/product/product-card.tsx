@@ -126,7 +126,7 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                     grade é de duas colunas, rente à borda da TELA. Meio
                     centímetro de ar devolve a linha ao seu lugar sem trazer a
                     caixa de volta. */}
-                <div className="flex flex-col gap-1 px-1.5 pb-1 pt-3 sm:px-2">
+                <div className="flex flex-1 flex-col gap-1 px-1.5 pb-1 pt-3 sm:px-2">
 
                     <h3 className="produto-nome first-letter:uppercase">
                         {produto.nome}
@@ -152,8 +152,16 @@ export default function ProductCard({ variantes }: { variantes: Produto[] }) {
                         o preço antigo primeiro (pequeno, riscado), o preço que
                         vale em seguida (grande), e só então como pagar. É a
                         sequência em que a pessoa lê "caiu de tanto para tanto,
-                        e dá para pagar assim". */}
-                    <div className="mt-0.5">
+                        e dá para pagar assim".
+
+                        `mt-auto` o prende à BASE do card. Sem isso o preço
+                        flutuava: o card com nota de avaliação empurrava o
+                        número para baixo e o vizinho sem nota ficava um degrau
+                        acima — numa fileira de cinco, cinco preços em cinco
+                        alturas. Como a grade estica todos os cards à mesma
+                        altura, prendê-lo embaixo alinha a fileira inteira sem
+                        reservar espaço vazio em card nenhum. */}
+                    <div className="mt-auto pt-1">
 
                         {temPromocao ? (
                             <p className="preco-antigo leading-none">
