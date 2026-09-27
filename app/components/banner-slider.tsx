@@ -97,18 +97,25 @@ export default function BannerSlider() {
         </Link>
     ) : null
 
-    /* Quem escolhe entre os dois formatos é o lojista, pelo que ele preencheu
-       no painel: banner sem título, sem descrição e sem preço é uma ARTE
-       fechada, e a vitrine a mostra inteira. Preencheu qualquer um dos três,
-       ele quer falar alguma coisa — e aí o texto ganha metade da faixa, ao
-       lado da arte.
-
-       Sem imagem não há formato de arte: o texto ocupa a faixa sozinho. */
+    /* Quem escolhe entre os dois formatos é o lojista, e agora ele escolhe
+       DECLARANDO: há dois botões na tela de banners do painel, e o que ele
+       marca vem aqui no campo `formato`.
+    
+       A leitura anterior era por dedução — "não escreveu nada, então quer só
+       a arte" —, e dedução obriga o lojista a descobrir sozinho que apagar o
+       título muda o desenho da página. Ninguém descobre.
+    
+       O `||` que sobrou é a rede para o banner gravado antes da coluna
+       existir: sem formato e sem texto nenhum, ele só pode ser arte. E sem
+       imagem não há formato de arte possível — aí o texto ocupa a faixa
+       sozinho, tenha o lojista marcado o que tiver. */
     const semTexto =
         Boolean(banner.imagem_url) &&
-        !banner.titulo.trim() &&
-        !banner.descricao.trim() &&
-        banner.valor <= 0
+        (banner.formato === "imagem" ||
+            (!banner.formato &&
+                !banner.titulo.trim() &&
+                !banner.descricao.trim() &&
+                banner.valor <= 0))
 
     return (
 

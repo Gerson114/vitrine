@@ -75,6 +75,17 @@ export interface Banner {
     valor: number
     valor_antigo: number
     link: string
+
+    /**
+     * Como o slide é desenhado, escolhido pelo lojista no painel:
+     *
+     *   "imagem" — a arte ocupa a faixa inteira, de ponta a ponta;
+     *   "texto"  — a arte fica com metade e o texto com a outra.
+     *
+     * Opcional porque banner gravado antes da coluna existir pode chegar sem
+     * ele. Ausente vale como "texto", que é o que esses banners já eram.
+     */
+    formato?: "imagem" | "texto"
     ativo: boolean
     ordem: number
 }
