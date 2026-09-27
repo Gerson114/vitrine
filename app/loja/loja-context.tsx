@@ -15,6 +15,15 @@ export interface TemaLoja {
     destaque?: string
     palco?: string
     logo_url?: string
+
+    /**
+     * O ícone da aba do navegador, escolhido pelo lojista na Aparência.
+     *
+     * Já vem resolvido do servidor: quando ele não escolheu nenhum, o que
+     * chega aqui é a logo (ver faviconDaVitrine, no backend). Vazio quer
+     * dizer que a loja não tem nem uma coisa nem outra.
+     */
+    favicon_url?: string
 }
 
 /**

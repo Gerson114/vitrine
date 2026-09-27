@@ -22,12 +22,29 @@ export async function generateMetadata({ params }: LayoutProps<"/[loja]">): Prom
         return { title: "Loja não encontrada" }
     }
 
+    /* O ícone da aba desta loja.
+
+       Sem ele, toda vitrine do sistema aparecia na aba com o mesmo ícone de
+       fábrica do Next — e o cliente com quatro abas abertas não achava a loja
+       em que estava comprando. O endereço vem do tema (ver a Aparência, no
+       painel) e já chega resolvido: loja sem ícone próprio recebe a logo.
+
+       `sizes: "any"` porque a imagem é do lojista e pode ter qualquer
+       dimensão — é o que diz ao navegador para usá-la em qualquer lugar em
+       vez de procurar um tamanho que não existe. */
+    const favicon = (loja.tema?.favicon_url ?? "").trim()
+
     return {
         // Sem ramo no título: esta vitrine serve loja de roupa, de eletro, de
         // perfumaria e de parafuso, e "Moda, calçados e acessórios" na aba de
         // uma loja de ventilador é o detalhe que denuncia página feita em
         // série. O nome da loja basta — é o que ela é.
         title: `${loja.nome} | Loja oficial`,
+
+        ...(favicon
+            ? { icons: { icon: [{ url: favicon, sizes: "any" }], apple: favicon } }
+            : {}),
+
         description: `Compre com segurança na ${loja.nome}. Confira os produtos disponíveis, formas de pagamento e acompanhe seu pedido.`,
     }
 }
