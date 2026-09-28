@@ -310,28 +310,29 @@
   border-color: var(--linha);
 }
 
-/* Card: fundo branco, canto suave e uma sombra baixa mesmo parado.
-   A sombra parada é o que separa o produto do fundo da página — sem ela, uma
-   grade de cards com borda cinza clara vira papel quadriculado. */
+/* Card: fundo branco e um fio de contorno, só. Tinha sombra parada além da
+   borda — as duas juntas, mesmo discretas, são o par que qualquer biblioteca
+   de componente usa de fábrica, e é o que faz uma caixa de compra ou um item
+   de carrinho parecer tirado de um modelo em vez de desenhado para esta
+   vitrine. Uma linha fina já separa a caixa do fundo da página; a segunda
+   pista (sombra) não estava dizendo nada que a primeira não dissesse. */
 .card {
   background: var(--fundo);
   border: 1px solid var(--linha-suave);
   border-radius: var(--radius-md);
-  box-shadow: var(--sombra-1);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
+/* O card de uma LISTA (pedido, endereço) responde ao cursor com um fundo
+   levemente mais escuro — o mesmo gesto de uma linha de tabela sendo
+   apontada, e não de um produto sendo destacado. Sem subir, sem contorno
+   colorido, sem sombra inflando: nenhum traço novo aparece na tela, só o
+   que já estava lá muda de tom. */
 .card-hover {
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition: background-color 150ms ease;
 }
 
-/* Sob o cursor o card sobe e a sombra abre. Quem pediu menos movimento não
-   recebe nenhum: a regra de prefers-reduced-motion lá em cima zera a
-   transição. */
 .card-hover:hover {
-  border-color: color-mix(in srgb, var(--destaque) 35%, var(--fundo));
-  box-shadow: var(--sombra-2);
-  transform: translateY(-3px);
+  background: var(--placa);
 }
 
 /* O selo de desconto, carimbado na quina da foto. Era uma faixa verde
