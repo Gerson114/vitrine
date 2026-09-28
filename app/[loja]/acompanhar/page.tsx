@@ -47,6 +47,13 @@ export default async function MeusPedidosPage({ params }: PageProps<"/[loja]/aco
     const cliente = await clienteLogado(slug)
     const pedidos = cliente ? await meusPedidos(slug) : []
 
+    // A mesma linha que separa as abas do painel do lojista: concluído é
+    // "entregue" ou "cancelado" — os dois desfechos em que nada mais vai
+    // acontecer com o pedido. O resto (aguardando pagamento, em preparo, a
+    // caminho) é o que a pessoa abriu esta tela para ver.
+    const emAndamento = pedidos.filter((pedido) => pedido.status !== "entregue" && pedido.status !== "cancelado")
+    const concluidos = pedidos.filter((pedido) => pedido.status === "entregue" || pedido.status === "cancelado")
+
     return (
         <div className="flex min-h-screen flex-1 flex-col bg-[var(--fundo)]">
             <Header />
@@ -89,11 +96,41 @@ export default async function MeusPedidosPage({ params }: PageProps<"/[loja]/aco
                         </Link>
                     </div>
                 ) : (
-                    <ul className="mt-6 flex flex-col gap-3">
-                        {pedidos.map((pedido) => (
-                            <CartaoPedido key={pedido.codigo} pedido={pedido} slug={slug} />
-                        ))}
-                    </ul>
+                    <>
+                        {/* EM ANDAMENTO primeiro, e sempre visível: é o pedido
+                            que a pessoa abriu esta tela para acompanhar. Numa
+                            conta com muita compra (a loja atende há tempo), ele
+                            ficava perdido no meio de trinta entregues — a
+                            mesma pergunta que fez o painel do lojista separar
+                            "em andamento" de "aguardando"/"entregues". */}
+                        {emAndamento.length > 0 ? (
+                            <div className="mt-6">
+                                <h2 className="rotulo text-[var(--ink-2)]">
+                                    Em andamento · {emAndamento.length}
+                                </h2>
+
+                                <ul className="mt-3 flex flex-col gap-3">
+                                    {emAndamento.map((pedido) => (
+                                        <CartaoPedido key={pedido.codigo} pedido={pedido} slug={slug} />
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : null}
+
+                        {concluidos.length > 0 ? (
+                            <div className={emAndamento.length > 0 ? "mt-8" : "mt-6"}>
+                                <h2 className="rotulo text-[var(--ink-3)]">
+                                    Concluídos · {concluidos.length}
+                                </h2>
+
+                                <ul className="mt-3 flex flex-col gap-3">
+                                    {concluidos.map((pedido) => (
+                                        <CartaoPedido key={pedido.codigo} pedido={pedido} slug={slug} />
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : null}
+                    </>
                 )}
 
                 {cliente ? <MeusDados slug={slug} /> : null}
