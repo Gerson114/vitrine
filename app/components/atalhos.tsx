@@ -68,7 +68,7 @@ export default function Atalhos({ atalhos, aoEscolher }: AtalhosProps) {
                             o mesmo truque que os departamentos circulares dos
                             marketplaces grandes usam. */}
                         <span
-                            className={`chapa moldura ${atalho.imagem ? "" : "sem-foto"} flex aspect-square w-full items-center justify-center overflow-hidden rounded-full transition-shadow group-hover:shadow-[var(--sombra-2)]`}
+                            className={`chapa moldura ${atalho.imagem ? "" : "sem-foto"} flex aspect-square w-full items-center justify-center overflow-hidden rounded-full`}
                         >
                             {atalho.imagem ? (
                                 <img

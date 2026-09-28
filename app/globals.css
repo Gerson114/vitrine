@@ -441,29 +441,23 @@
 /* ==========================================================================
    O CARD DE PRODUTO
 
-   Ele NÃO sobe sob o cursor. Card que levanta é o gesto que todo modelo usa,
-   e numa grade de vinte produtos vinte retângulos pulando é ruído — fora que
-   a fileira inteira treme quando o dedo passa raspando no celular.
+   Nem o card, nem a moldura da foto, têm borda ou sombra que aparece no
+   hover. Border-color mudando de cinza para a cor de marca, com uma sombra
+   inflando por baixo, é o hover de QUALQUER componente de card copiado de
+   biblioteca de UI — o mesmo em mil sites, reconhecível de longe como "modelo
+   pronto". Numa grade de vinte produtos, vinte retângulos ganhando contorno
+   ao mesmo tempo (arrastando o mouse pela fileira) é ruído, não polimento.
 
-   O que responde é a FOTO: ela cresce um pouco dentro da moldura e a sombra
-   de contato abre junto, como se o produto tivesse sido levantado para perto
-   do olho. O card só troca a cor da borda, para dizer qual está sob o cursor.
-   ========================================================================== */
-.card-produto {
-  transition: border-color 200ms ease, box-shadow 200ms ease;
-}
-
-.card-produto:hover {
-  border-color: color-mix(in srgb, var(--destaque) 32%, var(--fundo));
-  box-shadow: var(--sombra-2);
-}
-
+   O que responde ao cursor é só a FOTO: ela cresce um fio dentro da moldura e
+   a sombra de contato (a elipse sob o produto, ver .moldura::after) abre
+   junto — como se o produto tivesse sido erguido para perto do olho. Nenhum
+   traço novo aparece na tela; o que já estava lá só se aproxima. */
 .card-produto .foto {
   transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .card-produto:hover .foto {
-  transform: scale(1.06);
+  transform: scale(1.025);
 }
 
 .card-produto:hover .moldura::after {
@@ -539,14 +533,13 @@
    todo mundo faz — e era exatamente essa a queixa, porque a página inteira
    parecia um modelo pronto.
 
-   Aqui a caixa some. O que segura o produto é a CHAPA da foto: um retângulo
-   alto (4:5, e não mais o quadrado), com canto arredondado, e o texto
-   respirando embaixo dele, direto sobre o fundo da página. Sem borda, sem
-   sombra parada — a fileira deixa de ser uma grade de caixas e passa a ser uma
-   sequência de produtos.
-
-   A borda volta, discreta, só quando o cursor entra: é o único momento em que
-   ela tem trabalho a fazer (dizer qual está sob o cursor).
+   Aqui a caixa some, de vez: SEM borda e SEM sombra, parada ou no hover. O
+   que segura o produto é a CHAPA da foto — um retângulo alto (4:5), canto
+   arredondado, texto respirando embaixo dele, direto sobre o fundo da
+   página — e nenhum contorno se acende quando o cursor entra. Um anel de cor
+   de marca aparecendo ao redor da foto é o mesmo gesto que qualquer grade de
+   card genérica faz; aqui quem diz "é este que você está olhando" é só a foto
+   crescendo por dentro da própria moldura (ver .card-produto:hover .foto).
 
    O retângulo alto não é gosto: 4:5 é a proporção em que cabe uma pessoa de
    corpo inteiro, um armário e uma caixa de ferramenta sem sobrar ar dos lados
@@ -555,20 +548,12 @@
 .produto {
   position: relative;
   border-radius: var(--radius-lg);
-  transition: transform 200ms ease;
 }
 
 .produto .chapa {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-lg);
-  border: 1px solid transparent;
-  transition: border-color 200ms ease, box-shadow 200ms ease;
-}
-
-.produto:hover .chapa {
-  border-color: color-mix(in srgb, var(--destaque) 28%, var(--fundo));
-  box-shadow: var(--sombra-2);
 }
 
 /* O nome do produto. Duas linhas no máximo, e a terceira vira reticências:
