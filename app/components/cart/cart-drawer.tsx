@@ -512,7 +512,16 @@ export default function CartDrawer() {
                                                 aoEscolher={() => setEntrega({ ...entrega, tipo: "retirada" })}
                                                 Icone={FiHome}
                                                 titulo={t("sacola.retirar_titulo", "Retirar na loja")}
-                                                texto={loja.endereco || t("sacola.retirar_texto", "Você busca no balcão")}
+                                                texto={
+                                                    /* Nas lojas que pedem código no balcão, o
+                                                       cartão já diz. É a única coisa que muda o
+                                                       que a pessoa tem de fazer depois de pagar,
+                                                       e descobri-la na frente do atendente é
+                                                       descobrir tarde. */
+                                                    loja.entrega?.codigo_retirada
+                                                        ? "Você recebe um código para apresentar na loja"
+                                                        : loja.endereco || t("sacola.retirar_texto", "Você busca no balcão")
+                                                }
                                             />
 
                                             <OpcaoEntrega

@@ -256,6 +256,7 @@ export default function PedidoPage() {
     const [verificandoSessao, setVerificandoSessao] = useState(true)
     const [conferindoPagamento, setConferindoPagamento] = useState(false)
     const [copiado, setCopiado] = useState(false)
+    const [codigoCopiado, setCodigoCopiado] = useState(false)
 
     // Cancelar é em dois toques: o primeiro troca o botão pela pergunta. Não é
     // ceremônia — é que o botão fica ao lado do "comprar de novo", e desfazer
@@ -470,11 +471,18 @@ export default function PedidoPage() {
         }
     }
 
-    async function copiarRastreio(codigoRastreio: string) {
+    /**
+     * Copia um código e acende o "copiado" de quem pediu.
+     *
+     * O aviso é por botão, e não um só para a tela: o rastreio e o código de
+     * retirada aparecem juntos no mesmo pedido, e um "copiado" compartilhado
+     * acenderia no botão que ninguém clicou.
+     */
+    async function copiarTexto(texto: string, avisar: (copiou: boolean) => void) {
         try {
-            await navigator.clipboard.writeText(codigoRastreio)
-            setCopiado(true)
-            setTimeout(() => setCopiado(false), 2000)
+            await navigator.clipboard.writeText(texto)
+            avisar(true)
+            setTimeout(() => avisar(false), 2000)
         } catch {
             // Navegador sem permissão de área de transferência: o código
             // continua na tela para ser copiado à mão.
@@ -749,6 +757,72 @@ export default function PedidoPage() {
                 </header>
 
                 {/* ==========================================================
+                    O CÓDIGO DE RETIRADA
+
+                    Fora das duas colunas e logo abaixo da linha do tempo, em
+                    largura cheia: é a única coisa desta tela que a pessoa vai
+                    precisar LER EM VOZ ALTA no balcão, e ela vai abrir o
+                    telefone com o atendente esperando. Um número desses dentro
+                    de um cartão da coluna da direita é um número que se procura
+                    rolando a página.
+
+                    Só existe quando o servidor o manda — e ele para de mandar
+                    depois da retirada e no pedido cancelado (ver
+                    senhaAindaValendo, no backend). A tela não decide isso: ela
+                    desenha o que chegou.
+                   ========================================================== */}
+                {pedido.codigo_retirada ? (
+                    <section className="mt-4 border-2 border-[var(--destaque)]">
+
+                        <h2 className="rotulo border-b border-[var(--linha)] bg-[var(--placa)] px-5 py-3 text-[var(--ink-2)] sm:px-7">
+                            Código de retirada
+                        </h2>
+
+                        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 px-5 py-6 sm:px-7">
+
+                            <div className="min-w-0">
+                                <p className="num text-[2.2rem] font-bold leading-none tracking-[0.2em] text-[var(--destaque)] sm:text-[2.75rem]">
+                                    {pedido.codigo_retirada}
+                                </p>
+
+                                <p className="mt-3 max-w-md text-[0.85rem] leading-relaxed text-[var(--ink-2)]">
+                                    Diga este número na loja para levar o pedido. Ele é a sua
+                                    prova de que a compra é sua — a loja não tem como vê-lo, e
+                                    ninguém retira o pedido sem ele.
+                                </p>
+
+                                <p className="mt-1.5 text-[0.78rem] text-[var(--ink-3)]">
+                                    Não é o mesmo número do pedido ({pedido.codigo}), e não
+                                    precisa ser mandado para ninguém antes da retirada.
+                                </p>
+                            </div>
+
+                            {/* Copiar, porque quem vai buscar às vezes manda
+                                outra pessoa e precisa passar o número adiante
+                                — e digitar seis dígitos de cabeça na conversa
+                                é como se erra um deles. */}
+                            <button
+                                type="button"
+                                onClick={() => copiarTexto(pedido.codigo_retirada ?? "", setCodigoCopiado)}
+                                className="btn btn-claro nao-imprime shrink-0"
+                            >
+                                {codigoCopiado ? (
+                                    <>
+                                        <FiCheck className="w-4" aria-hidden /> copiado
+                                    </>
+                                ) : (
+                                    <>
+                                        <FiCopy className="w-4" aria-hidden /> copiar código
+                                    </>
+                                )}
+                            </button>
+
+                        </div>
+
+                    </section>
+                ) : null}
+
+                {/* ==========================================================
                     O CORPO — itens e entrega de um lado, dinheiro do outro.
 
                     No celular vira uma coluna só, e o pagamento sobe para o
@@ -874,6 +948,29 @@ export default function PedidoPage() {
                                                     {loja.horario}
                                                 </p>
                                             ) : null}
+
+                                            {/* O que levar, junto de onde ir.
+                                                O código tem cartão próprio lá
+                                                em cima, mas quem lê "você
+                                                retira na loja" está fazendo a
+                                                pergunta aqui — e a resposta
+                                                completa inclui o que apresentar
+                                                quando chegar. */}
+                                            {pedido.codigo_retirada ? (
+                                                <p className="mt-3 border-t border-[var(--linha-suave)] pt-3 text-[0.82rem] leading-relaxed text-[var(--ink-2)]">
+                                                    Leve o código{" "}
+                                                    <span className="num font-bold tracking-[0.1em] text-[var(--ink)]">
+                                                        {pedido.codigo_retirada}
+                                                    </span>{" "}
+                                                    — sem ele a loja não libera o pedido.
+                                                </p>
+                                            ) : null}
+
+                                            {pedido.retirado_em ? (
+                                                <p className="mt-3 border-t border-[var(--linha-suave)] pt-3 text-[0.82rem] text-[var(--ink-2)]">
+                                                    Retirado em {formatarData(pedido.retirado_em)}.
+                                                </p>
+                                            ) : null}
                                         </div>
                                     )}
 
@@ -922,7 +1019,7 @@ export default function PedidoPage() {
 
                                                 <button
                                                     type="button"
-                                                    onClick={() => copiarRastreio(pedido.codigo_rastreio ?? "")}
+                                                    onClick={() => copiarTexto(pedido.codigo_rastreio ?? "", setCopiado)}
                                                     className="inline-flex items-center gap-1 text-[0.72rem] text-[var(--ink-2)] underline underline-offset-2 transition-colors hover:text-[var(--ink)]"
                                                 >
                                                     {copiado ? (

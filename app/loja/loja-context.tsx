@@ -148,6 +148,19 @@ export interface EntregaDaLoja {
 
     /** A loja deixa o cliente buscar no balcão, sem frete. */
     retirada_na_loja?: boolean
+
+    /**
+     * A loja exige um código para liberar o pedido no balcão.
+     *
+     * Só o sim/não da configuração chega aqui — o código de cada pedido vem
+     * na consulta do pedido, que pede sessão de quem comprou. Este campo
+     * existe para o checkout AVISAR antes da escolha: quem vai buscar precisa
+     * saber que vai ter de apresentar um código, e descobrir isso no balcão é
+     * descobrir tarde.
+     *
+     * Ausente vale como desligado, que é o padrão de fábrica no servidor.
+     */
+    codigo_retirada?: boolean
 }
 
 export interface Bloco {

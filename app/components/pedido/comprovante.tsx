@@ -19,6 +19,12 @@ import type { PedidoStatus } from "@/app/type/type"
  * parece com documento fiscal sem ser é o tipo de coisa que cria problema
  * para a loja — e para quem guardou achando que tinha nota.
  *
+ * O CÓDIGO DE RETIRADA NÃO ENTRA AQUI, e a ausência é a decisão. Este papel
+ * vai parar dentro da caixa, no arquivo de quem comprou ou na mão de um
+ * terceiro — é justamente o que está escrito acima —, e um código de retirada
+ * impresso num papel que circula deixa de provar que quem está no balcão é
+ * quem comprou. Ele mora na tela do pedido, que pede sessão para abrir.
+ *
  * Fora da impressão, este bloco não existe na tela (ver `.so-impressao` em
  * globals.css).
  */

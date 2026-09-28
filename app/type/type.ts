@@ -150,6 +150,23 @@ export interface PedidoStatus {
     /** "entrega" ou "retirada". Vazio nos pedidos anteriores à entrega. */
     entrega_tipo?: string
 
+    /**
+     * O código que esta pessoa apresenta no balcão para levar o pedido.
+     *
+     * Só chega na consulta de quem está logado (ver MeuPedido no backend), e
+     * só enquanto ele vale: o servidor o omite depois da retirada e no pedido
+     * cancelado. Vazio é o caso comum — pedido de entrega, ou loja que não
+     * exige código nenhum.
+     *
+     * É OUTRO código, e não o `codigo` do pedido: aquele circula (vai no
+     * comprovante, na URL, na conversa com a loja) e por isso não prova que
+     * quem está no balcão é quem comprou. Este não deve circular.
+     */
+    codigo_retirada?: string
+
+    /** Quando o pedido saiu do balcão com o código conferido. */
+    retirado_em?: string
+
     /** O telefone que o comprador deixou neste pedido, só com dígitos. */
     telefone?: string
 
