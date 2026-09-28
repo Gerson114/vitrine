@@ -338,15 +338,25 @@ export default function Header({
                 )
 
             case "sacola":
-                /* A sacola ganhou fundo próprio: é a ação que a pessoa
-                   procura no meio da compra, e mais um ícone branco em cima
-                   de azul, ao lado de outros dois, não se acha de relance. */
+                /* A sacola ganhou fundo BRANCO, e não uma sombra do próprio
+                   destaque.
+
+                   Era um tom de --sobre-destaque a 12%: em destaque escuro
+                   isso lia como um cinza discreto, mas em destaque claro (o
+                   vermelho e o laranja das lojas de departamento) o mesmo
+                   cálculo escolhe PRETO como sobre-destaque — e 12% de preto
+                   em cima de uma cor viva pintava um retângulo sujo, cor de
+                   nada, bem no canto que devia ser o mais convidativo da
+                   barra. Um chip branco resolve nas duas pontas: sempre
+                   contrasta com o destaque (claro ou escuro) e sempre parece
+                   INTENCIONAL — é o mesmo botão que carrinho de app grande
+                   usa dentro de cabeçalho colorido. */
                 return (
                     <button
                         type="button"
                         onClick={abrir}
                         aria-label="Abrir carrinho"
-                        className={`${aparicao} items-center gap-2.5 rounded-[var(--radius-md)] p-2 text-[var(--sobre-destaque)] transition-colors hover:bg-[color-mix(in_srgb,var(--sobre-destaque)_16%,transparent)] md:bg-[color-mix(in_srgb,var(--sobre-destaque)_12%,transparent)] md:px-3 md:py-2`}
+                        className={`${aparicao} items-center gap-2.5 rounded-full bg-[var(--fundo)] p-2 text-[var(--destaque)] shadow-[0_1px_2px_rgba(0,0,0,0.12)] transition-transform hover:scale-[1.03] md:px-3.5 md:py-2`}
                     >
                         {/* O contador precisa de folga à direita: colado no
                             ícone ele encostava na palavra "Sacola" e os três
@@ -355,17 +365,17 @@ export default function Header({
                             <FiShoppingBag className="w-[1.3rem]" aria-hidden />
 
                             {totalItens > 0 ? (
-                                <span className="num absolute -right-2.5 -top-2 flex h-[1.15rem] min-w-[1.15rem] items-center justify-center rounded-full border border-[var(--destaque)] bg-[var(--coral)] px-1 text-[0.62rem] font-bold text-white">
+                                <span className="num absolute -right-2.5 -top-2 flex h-[1.15rem] min-w-[1.15rem] items-center justify-center rounded-full border-2 border-[var(--fundo)] bg-[var(--coral)] px-1 text-[0.62rem] font-bold text-white">
                                     {totalItens > 99 ? "99+" : totalItens}
                                 </span>
                             ) : null}
                         </span>
 
                         <span className="hidden text-left leading-tight md:block">
-                            <span className="num block text-[0.7rem] opacity-75">
+                            <span className="num block text-[0.7rem] text-[var(--ink-3)]">
                                 {totalItens} {totalItens === 1 ? "item" : "itens"}
                             </span>
-                            <span className="block text-[0.82rem] font-semibold">
+                            <span className="block text-[0.82rem] font-semibold text-[var(--ink)]">
                                 Sacola
                             </span>
                         </span>
@@ -513,16 +523,16 @@ export default function Header({
                             key={faixa.id}
                             className={`hidden border-b border-[color-mix(in_srgb,var(--sobre-destaque)_18%,transparent)] sm:block ${fundoDaFaixa(faixa.fundo)}`}
                         >
-                            <div className="largura flex items-center justify-between gap-6 py-1.5 text-[0.72rem] tracking-[0.01em] text-[color-mix(in_srgb,var(--sobre-destaque)_82%,transparent)]">
+                            <div className="largura flex items-center justify-between gap-8 py-2 text-[0.76rem] tracking-[0.01em] text-[color-mix(in_srgb,var(--sobre-destaque)_90%,transparent)]">
 
                                 <Area
                                     pecas={faixa.esquerda}
                                     comFio
-                                    className="flex items-center gap-3 lg:gap-4"
+                                    className="flex items-center gap-4 lg:gap-5"
                                 />
 
-                                <Area pecas={faixa.centro} comFio className="flex items-center gap-3" />
-                                <Area pecas={faixa.direita} comFio className="flex items-center gap-3" />
+                                <Area pecas={faixa.centro} comFio className="flex items-center gap-4" />
+                                <Area pecas={faixa.direita} comFio className="flex items-center gap-4" />
 
                             </div>
                         </div>
@@ -723,7 +733,7 @@ function IconeDaPeca({ chave }: { chave?: string }) {
 
     if (!Desenho) return null
 
-    return <Desenho className="w-3 shrink-0" aria-hidden />
+    return <Desenho className="w-3.5 shrink-0" aria-hidden />
 }
 
 const ICONES_DA_PECA: Record<string, IconType> = {
@@ -816,7 +826,7 @@ function Fio() {
     return (
         <span
             aria-hidden
-            className="h-3 w-px bg-[color-mix(in_srgb,var(--sobre-destaque)_30%,transparent)]"
+            className="h-3.5 w-px bg-[color-mix(in_srgb,var(--sobre-destaque)_30%,transparent)]"
         />
     )
 }

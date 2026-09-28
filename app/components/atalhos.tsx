@@ -1,6 +1,6 @@
 "use client"
 
-import { FiArrowRight, FiCamera } from "react-icons/fi"
+import { FiCamera } from "react-icons/fi"
 
 export interface Atalho {
     nome: string
@@ -20,10 +20,12 @@ interface AtalhosProps {
  * navegação principal: é por ela que a maioria entra no catálogo, e o desenho
  * tem de dizer isso.
  *
- * Agora são cards largos, com a foto ocupando o bloco inteiro e o nome sobre
- * um degradê. A foto é a do primeiro produto da categoria, então a régua se
- * monta sozinha conforme o catálogo cresce — e continua funcionando quando
- * ainda não há foto nenhuma.
+ * TRILHO, e não grade. Era grade — e uma loja com vinte categorias empurrava
+ * a primeira fileira de produtos para o final da segunda tela: quanto mais
+ * completo o catálogo do lojista, pior a página ficava, que é o oposto do que
+ * se quer. Aqui a régua cresce para o LADO: dez categorias ou cem ocupam a
+ * mesma altura, e quem tem mais rola o dedo em vez de rolar a página. É o
+ * mesmo desenho do carrossel de departamento de qualquer marketplace grande.
  */
 export default function Atalhos({ atalhos, aoEscolher }: AtalhosProps) {
 
@@ -31,9 +33,9 @@ export default function Atalhos({ atalhos, aoEscolher }: AtalhosProps) {
 
     return (
 
-        <section className="largura py-7 sm:py-10">
+        <section className="py-7 sm:py-10">
 
-            <div className="mb-4 flex items-end justify-between gap-4">
+            <div className="largura mb-4 flex items-end justify-between gap-4">
 
                 {/* O olho e o título são UMA peça, e por isso vivem na mesma
                     coluna: soltos lado a lado dentro do `justify-between`, o
@@ -49,26 +51,25 @@ export default function Atalhos({ atalhos, aoEscolher }: AtalhosProps) {
                 </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
-
+            {/* `largura`, a mesma coluna do resto da página — o trilho rola
+                DENTRO dela, alinhado ao título logo acima, em vez de vazar
+                para a borda da tela num monitor largo. */}
+            <div className="largura flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [scrollbar-width:none] sm:gap-3.5 [&::-webkit-scrollbar]:hidden">
                 {atalhos.map((atalho) => (
                     <button
                         key={atalho.nome}
                         type="button"
                         onClick={() => aoEscolher(atalho.nome)}
-                        className="produto group flex flex-col text-left"
+                        className="group flex w-[5.75rem] shrink-0 snap-start flex-col items-center gap-2 text-center sm:w-[6.5rem]"
                     >
-                        {/* O nome saiu de DENTRO da foto.
-
-                            Ele morava sobre a imagem, e para continuar legível
-                            sobre qualquer foto precisava de um degradê preto
-                            cobrindo dois terços do card — que escurecia
-                            justamente a parte do produto que a pessoa estava
-                            tentando ver. Embaixo, em chapa própria, o nome é
-                            sempre legível e a foto aparece inteira: some o
-                            degradê e some o problema que ele existia para
-                            remendar. */}
-                        <span className={`chapa moldura ${atalho.imagem ? "" : "sem-foto"} flex aspect-[4/3] w-full items-center justify-center overflow-hidden`}>
+                        {/* Redondo, e não retângulo: é o que separa "aqui é
+                            navegação" de "aqui é produto" só pela forma do
+                            card, sem precisar de rótulo nenhum dizendo isso —
+                            o mesmo truque que os departamentos circulares dos
+                            marketplaces grandes usam. */}
+                        <span
+                            className={`chapa moldura ${atalho.imagem ? "" : "sem-foto"} flex aspect-square w-full items-center justify-center overflow-hidden rounded-full transition-shadow group-hover:shadow-[var(--sombra-2)]`}
+                        >
                             {atalho.imagem ? (
                                 <img
                                     src={atalho.imagem}
@@ -79,20 +80,13 @@ export default function Atalhos({ atalhos, aoEscolher }: AtalhosProps) {
                                 />
                             ) : (
                                 <span className="flex items-center justify-center text-[var(--ink-3)]">
-                                    <FiCamera className="w-6" aria-hidden />
+                                    <FiCamera className="w-5" aria-hidden />
                                 </span>
                             )}
                         </span>
 
-                        <span className="flex w-full items-center justify-between gap-1.5 pt-2.5">
-                            <span className="truncate text-[0.85rem] font-semibold capitalize text-[var(--ink)] sm:text-[0.92rem]">
-                                {atalho.nome}
-                            </span>
-
-                            <FiArrowRight
-                                className="w-4 shrink-0 text-[var(--ink-3)] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--destaque)]"
-                                aria-hidden
-                            />
+                        <span className="line-clamp-2 text-[0.78rem] font-semibold leading-tight capitalize text-[var(--ink)] transition-colors group-hover:text-[var(--destaque)] sm:text-[0.82rem]">
+                            {atalho.nome}
                         </span>
                     </button>
                 ))}
